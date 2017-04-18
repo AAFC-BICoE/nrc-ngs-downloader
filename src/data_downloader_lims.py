@@ -25,6 +25,7 @@ def main():
 
    print(package_info)
    print("text in dev branch")
+   print("text again in dev branch")
    # for each package_info 
 if __name__ == '__main__':
    main()
