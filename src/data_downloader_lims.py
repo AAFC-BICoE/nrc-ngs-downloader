@@ -24,6 +24,7 @@ def main():
   # new_package = my_db_instance.check_new_package(package_info)
 
    print(package_info)
+   print("text in dev branch")
    # for each package_info 
 if __name__ == '__main__':
    main()
