@@ -46,7 +46,9 @@ class parse_webpageBS:
             for a_text in cell.findAll(text=True):
                 info_for_a_package.append(a_text.strip()) 
          info_for_a_package = [i for i in info_for_a_package if i != '']
-         my_list.append(info_for_a_package)
+        # print(info_for_a_package)
+         if len(info_for_a_package)!=0 and info_for_a_package[-1]=="completed":
+            my_list.append(info_for_a_package)
       return my_list   
    
    def get_pack_info(self, pack_info_url, soup):
@@ -66,6 +68,7 @@ class parse_webpageBS:
             print(pack_name, pack_data_url)
             pack_info.append(pack_name)
             pack_info.append(pack_data_url)
+     # print("ingetPackInfo:",pack_info)
       return pack_info
  
    def action_for_a_package(self, pack_info_url, pathToFolder, pathDestin):
@@ -74,18 +77,20 @@ class parse_webpageBS:
       soup = BeautifulSoup(r.content)
 
       package_info = self.get_pack_info(pack_info_url,soup)
+      #print(package_info)
       pack_data_url = package_info[-1]
       pack_name = package_info[-2]
 
       file_infos = self.get_file_list(soup)
 
       pack_path_and_name = pathToFolder+pack_name
-      #time_and_size = self.download_package(pack_data_url,pack_path_and_name, session_requests)
-      #package_info.append(time_and_size[0])
-      #package_info.append(time_and_size[1])
+      time_and_size = self.download_package(pack_data_url,pack_path_and_name, session_requests)
+      package_info.append(time_and_size[0])
+      package_info.append(time_and_size[1])
       
       path_to_old_file, path_to_new_file =  self.unzip_package(pack_path_and_name)
-      self.rename_files(file_infos, path_to_old_file, path_to_new_file)
+      if len(file_infos) !=0 :
+         self.rename_files(file_infos, path_to_old_file, path_to_new_file)
       
       return package_info, file_infos
 
@@ -93,7 +98,9 @@ class parse_webpageBS:
       sha256_code = []
       for dirpath,dirname, filename in os.walk(path_to_old_file):
          for a_file in filename:
-            oldname, newname = self.name_mapping(file_infos, a_file)
+            oldname, newname,fileIndex = self.name_mapping(file_infos, a_file)
+            file_infos[fileIndex].append(oldname)
+            file_infos[fileIndex].append(newname)
             oldname = path_to_old_file+"/"+oldname
             newname = path_to_new_file+"/"+newname
            # print(a_file,"two names:", oldname, newname)
@@ -104,37 +111,52 @@ class parse_webpageBS:
             print(oldname, a_code)
             os.rename(oldname, newname)
             #zip file and sha256
-            
+            file_infos[fileIndex].append(a_code)
             newnamezip = newname+".gz";
             with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
                f_out.writelines(f_in)
+            fileSize = os.stat(newnamezip).st_size
+            file_infos[fileIndex].append(fileSize)
             os.unlink(newname)
-      os.rmdir(path_to_old_file)
+      
+      if os.path.isdir(path_to_old_file):
+         os.rmdir(path_to_old_file)
       return sha256_code
             
    def name_mapping(self,file_infos, oldname):
      # print("mapping ", oldname)
       oldname_parts = oldname.split("_")
      # print("oldname_parts", oldname_parts[0], oldname_parts[-1])
+      index = 0
       for a_row in file_infos:
          if a_row[0]==oldname_parts[0]:
             newname = a_row[1]+"_"+oldname_parts[0]+"_"+oldname_parts[-1]
-      return oldname, newname
+            fileIndex = index
+         index+=1
+      return oldname, newname, fileIndex
 
    def unzip_package(self,source_name):
       if source_name.endswith("tar.gz"):
          dest_folder = source_name[:-7]
-         os.mkdir(dest_folder)
+      else:
+         dest_folder = source_name[:-4]
+
+      os.mkdir(dest_folder)
+      try:
          tar = tarfile.open(source_name)
          tar.extractall(dest_folder)
          tar.close()
-         for dirpath,old_dir_name, filenames in os.walk(dest_folder):
-          # print(dirpath, old_dir_name, filenames)
-           if len(old_dir_name)==1:
-              old_dir_namehere = old_dir_name[0]
+      except Exception as e:
+         print("empty file")
+       
+      for dirpath,old_dir_name, filenames in os.walk(dest_folder):
+        print(dirpath, old_dir_name, filenames)
+        if len(old_dir_name)==1:
+           old_dir_namehere = old_dir_name[0]
              # print("old:" + old_dir_namehere)      
-      else:
-         print("not a  tar.gz file:",source_name)
+        if len(filenames)==0:
+           os.rmdir(dest_folder)       
+      #   print("not a  tar.gz file:",source_name)
      # print(dirpath, old_dir_namehere, filenames)
       path_old = dirpath;
       path_new = dest_folder;
@@ -150,7 +172,8 @@ class parse_webpageBS:
          a_file_info2 = []
          for a_item in a_file_info:
             a_file_info2.append(a_item.strip())
-         a_file_info2 = [i for i in a_file_info2 if i not in ('\n','')]
+        # a_file_info2 = [i for i in a_file_info2 if i != '\n']
+         a_file_info2 = [i for i in a_file_info2 if i not in ('\n',"")]
          file_list.append(a_file_info2)
       return file_list
 
@@ -169,7 +192,7 @@ class parse_webpageBS:
                output.write(chunk)
                print(datetime.now(), totalSize)
            # if chunknumber==5:
-            #   break; 
+           #    break; 
       end = time.time()
       time_in_min = (end-start)/60
       time_and_size.append("%.1f" % time_in_min)

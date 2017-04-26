@@ -18,23 +18,32 @@ def main():
    web_parser_instance = parse_webpageBS()
    
    session_requests = web_parser_instance.login()   
-   smallest_package = '161206_M01549_0132_000000000-AWWU4'
-   package_info = web_parser_instance.get_package_list(session_requests)   
+  # smallest_package = '161206_M01549_0132_000000000-AWWU4'
+ #  smallest_package = '170407_M01549_0148_000000000-B488R'
+   my_db_instance.check_dp_table(conn)
+   my_db_instance.check_df_table(conn)
+
+   package_info = web_parser_instance.get_package_list(session_requests)
+#  print("allPackage:",package_info)   
    new_package = my_db_instance.check_new_package(conn,package_info)
+   print("newPAckage:", new_package)
    for a_pack in new_package:
      # print(a_pack[1])
       #print(smallest_package)
-      if a_pack[1] == smallest_package:
+     # if a_pack[1] == smallest_package:
          print("smallest")
          a_pack_info,files_info = web_parser_instance.action_for_a_package(a_pack[0], PACKAGE_FOLDER,PATH_DEST)
-        # print(a_pack_info)
-         #print(files_info)
-         #my_db_instance.insert_values_packinfo(conn, a_pack_info)
-         #my_db_instance.insert_values_fileinfo(conn, files_info)
+         if len(files_info)!=0:
+            print("add a new package")
+            print(a_pack_info)
+            print(files_info[0])
+            print(files_info[-1])
+            my_db_instance.insert_values_packinfo(conn, a_pack_info)
+            my_db_instance.insert_values_fileinfo(conn, files_info)
       #my_db_instance.insert_values_dp_packinfo2(conn,more_pack_info)
-      
-      #my_db_instance.check_dp_table(conn)
-      #my_db_instance.check_df_table(conn)
+         print("after insert a package")
+         my_db_instance.check_dp_table(conn)
+         my_db_instance.check_df_table(conn)
    conn.close()
 if __name__ == '__main__':
    main()
