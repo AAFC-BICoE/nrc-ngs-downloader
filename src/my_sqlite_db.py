@@ -4,19 +4,26 @@ import sqlite3
 
 class my_sqlite_db:
    def initial_sqlite(self,db_name):
-     # print(db_name) 
+      # Create tables if the tables not exist
       if os.path.isfile(db_name) == False:
          conn = sqlite3.connect(db_name)
          c = conn.cursor()
-        # c.execute("CREATE TABLE application_action (action_ID INT PRIMARY KEY, start_time TEXT, end_time TEXT, access_success TEXT, command_line TEXT)")
+         # a table to keep all the information related to an action of running the program
+         # 1:the start and end time to run the program,
+         # 2:   
+         c.execute("CREATE TABLE application_action (action_ID INT PRIMARY KEY, start_time TEXT, end_time TEXT, access_success TEXT, command_line TEXT)")
+         # a table to keep all the inforamtion related to each data_package
+         # 1. a data_package is a .tar.gz or .tar file on LIMS webpage, each contains
+         #      
          c.execute("CREATE TABLE data_packages (package_ID INT PRIMARY KEY, action_ID INT, download_date TEXT, time_for_downloading TEXT, package_size REAL, package_name TEXT, pack_info_url TEXT, pack_data_url TEXT, run_name TEXT, machine_name TEXT, plate_name TEXT, platform TEXT,run_mode TEXT, run_type TEXT, num_cycles INT, quality_format TEXT, operator TEXT, date_creation TEXT, description TEXT, status TEXT, http_header TEXT )")
-         c.execute("CREATE TABLE data_files (file_ID INT, package_ID INT, new_name TEXT, original_name TEXT, file_size REAL, sample_name TEXT, biomaterial TEXT, biomaterial_type TEXT, comments TEXT, principal_investigator TEXT, MID_tag TEXT, barcode TEXT, num_reads TEXT, pct_reads_in_lane TEXT, folder_name TEXT, SHA256 TEXT)")
+         c.execute("CREATE TABLE data_files (file_ID INT PRIMARY KEY, package_ID INT, new_name TEXT, original_name TEXT, file_size REAL, sample_name TEXT, biomaterial TEXT, biomaterial_type TEXT, comments TEXT, principal_investigator TEXT, MID_tag TEXT, barcode TEXT, num_reads TEXT, pct_reads_in_lane TEXT, folder_name TEXT, SHA256 TEXT)")
                                  
          conn.commit()
       else:
          conn = sqlite3.connect(db_name)
       return conn
-
+   
+   # insert values to table aplication_action, 
    def insert_value_aa_st(self, conn, args):
       cur = conn.cursor()
       cur.execute('INSERT INTO application_action (action_ID, start_time, end_time,access_success, command_line) VALUES (?,?,?,?,?)', (args[0], args[1],args[2],args[3],args[4]))

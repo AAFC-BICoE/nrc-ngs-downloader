@@ -19,7 +19,7 @@ SEQUENCEFOLDER = "../allSequence/"
 
  
 class parse_webpageBS:
-
+ 
    def login(self):
       login_data = {
          'username' : USERNAME,
@@ -27,7 +27,6 @@ class parse_webpageBS:
          'submit' : 'Login',
       }
       session_requests = requests.Session()
-     # result = session_requests.post(URLLOGIN, data=login_data)
       result = session_requests.post(URLLOGIN, verify = False, data=login_data)
       return session_requests
     
@@ -46,7 +45,6 @@ class parse_webpageBS:
             for a_text in cell.findAll(text=True):
                 info_for_a_package.append(a_text.strip()) 
          info_for_a_package = [i for i in info_for_a_package if i != '']
-        # print(info_for_a_package)
          if len(info_for_a_package)!=0 and info_for_a_package[-1]=="completed":
             my_list.append(info_for_a_package)
       return my_list   
@@ -68,7 +66,6 @@ class parse_webpageBS:
             print(pack_name, pack_data_url)
             pack_info.append(pack_name)
             pack_info.append(pack_data_url)
-     # print("ingetPackInfo:",pack_info)
       return pack_info
  
    def action_for_a_package(self, pack_info_url, pathToFolder, pathDestin):
@@ -77,25 +74,27 @@ class parse_webpageBS:
       soup = BeautifulSoup(r.content)
 
       package_info = self.get_pack_info(pack_info_url,soup)
-      #print(package_info)
       pack_data_url = package_info[-1]
       pack_name = package_info[-2]
 
       file_infos = self.get_file_list(soup)
-
       pack_path_and_name = pathToFolder+pack_name
       time_and_size = self.download_package(pack_data_url,pack_path_and_name, session_requests)
+#      package_info.append(10);
+ #     package_info.append(10);
       package_info.append(time_and_size[0])
       package_info.append(time_and_size[1])
       
       path_to_old_file, path_to_new_file =  self.unzip_package(pack_path_and_name)
-      if len(file_infos) !=0 :
+      if path_to_old_file != "empty":
+        # print("to rename files")
          self.rename_files(file_infos, path_to_old_file, path_to_new_file)
       
       return package_info, file_infos
 
    def rename_files(self,file_infos, path_to_old_file, path_to_new_file):
       sha256_code = []
+      print("pathToOldFolder", path_to_old_file)
       for dirpath,dirname, filename in os.walk(path_to_old_file):
          for a_file in filename:
             oldname, newname,fileIndex = self.name_mapping(file_infos, a_file)
@@ -141,26 +140,31 @@ class parse_webpageBS:
       else:
          dest_folder = source_name[:-4]
 
-      os.mkdir(dest_folder)
+      #os.mkdir(dest_folder)
       try:
          tar = tarfile.open(source_name)
          tar.extractall(dest_folder)
          tar.close()
+         os.mkdir(dest_folder)
       except Exception as e:
          print("empty file")
-       
-      for dirpath,old_dir_name, filenames in os.walk(dest_folder):
-        print(dirpath, old_dir_name, filenames)
-        if len(old_dir_name)==1:
-           old_dir_namehere = old_dir_name[0]
-             # print("old:" + old_dir_namehere)      
-        if len(filenames)==0:
-           os.rmdir(dest_folder)       
+         
+      path_old = "empty"
+      path_new = "empty"
+      if os.path.isdir(dest_folder): 
+         for dirpath,old_dir_name, filenames in os.walk(dest_folder):
+            print(dirpath, old_dir_name, filenames)
+       # if len(old_dir_name)==1:
+        #   old_dir_namehere = old_dir_name[0]
+             # print("old:" + old_dir_namehere)
+       # print("fileName",filenames)      
+        #if len(filenames)==0:
+          # os.rmdir(dest_folder)       
       #   print("not a  tar.gz file:",source_name)
      # print(dirpath, old_dir_namehere, filenames)
-      path_old = dirpath;
-      path_new = dest_folder;
-      print(path_old, path_new)
+         path_old = dirpath;
+         path_new = dest_folder;
+         print(path_old, path_new)
       return path_old, path_new
 
    def get_file_list(self, soup):
