@@ -18,7 +18,7 @@ class LimsDatabase:
             c.execute("CREATE TABLE data_packages (package_ID INT PRIMARY KEY, action_ID INT)")
             c.execute('ALTER TABLE data_packages ADD COLUMN download_date TEXT')
             c.execute('ALTER TABLE data_packages ADD COLUMN time_for_downloading TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN package_size REAL')
+            c.execute('ALTER TABLE data_packages ADD COLUMN package_size TEXT')
             c.execute('ALTER TABLE data_packages ADD COLUMN package_name TEXT')
             c.execute('ALTER TABLE data_packages ADD COLUMN pack_info_url TEXT')
             c.execute('ALTER TABLE data_packages ADD COLUMN pack_data_url TEXT')
@@ -38,17 +38,14 @@ class LimsDatabase:
             c.execute('ALTER TABLE data_packages ADD COLUMN http_header TEXT')
             
             c.execute("CREATE TABLE data_files (file_ID INT PRIMARY KEY, package_ID INT)")
-            other_column = { "new_name":"TEXT", "original_name":"TEXT", 
-                            "file_size":"REAL", "sample_name":"TEXT", 
-                            "biomaterial":"TEXT", "biomaterial_type":"TEXT", 
-                            "comments":"TEXT", "principal_investigator":"TEXT", 
-                            "MID_tag":"TEXT", "barcode":"TEXT", 
-                            "num_reads":"TEXT", "pct_reads_in_lane":"TEXT", 
-                            "folder_name":"TEXT", "SHA256":"TEXT"
-                            }
-            
-            add_column = other_column.items()
-            for a_column in add_column:
+            other_column = [["sample_name","TEXT"], ["biomaterial","TEXT"], ["biomaterial_type","TEXT"], 
+                            ["comments","TEXT"], ["principal_investigator","TEXT"], ["mid_tag","TEXT"], 
+                            ["barcode","TEXT"], ["numreads","TEXT"], ["pct_of_reads_in_lane","TEXT"], 
+                            ["new_name","TEXT"], ["original_name","TEXT"],
+                            ["file_size","REAL"],["folder_name","TEXT"], ["SHA256","TEXT"],
+                            ]
+            #add_column = other_column.items()
+            for a_column in other_column:
                 column_name = a_column[0]
                 column_type = a_column[1]
                 add_string = 'ALTER TABLE data_files ADD COLUMN '+column_name+ " "+column_type;
@@ -81,8 +78,8 @@ class LimsDatabase:
     
     def insert_run_info(self, run_info):
         cur = self.conn.cursor()
-        rowid =len(cur.execute('SELECT * from data_packages').fetchall())+1
-        
+        #rowid =len(cur.execute('SELECT * from data_packages').fetchall())+1
+        rowid = self.get_last_row_id('data_packages','package_ID')+1
         all_pair = run_info.items()
         cur.execute('INSERT INTO data_packages (package_ID) VALUES (?)',(rowid,))
         for a_pair in all_pair: 
@@ -93,7 +90,15 @@ class LimsDatabase:
             self.insert_a_value(table_name,column_name,column_value,id_name, rowid)
         self.conn.commit()
         return rowid  
-     
+    
+    def get_last_row_id(self,table_name, id):
+        cur = self.conn.cursor()
+        command_string = 'SELECT max('+id+') FROM '+table_name
+        cur.execute(command_string)
+        max_id = cur.fetchone()[0]
+        print(max_id)
+        return max_id
+        
     def insert_a_value(self,table_name, column_name, column_value,id_name, rowid):
         cur = self.conn.cursor()
         if self.has_column(table_name, column_name):
@@ -138,7 +143,8 @@ class LimsDatabase:
         
     def insert_file_info(self, package_id, all_file_info):
         cur = self.conn.cursor()
-        rowid =len(cur.execute('SELECT * from data_files').fetchall())
+        #rowid =len(cur.execute('SELECT * from data_files').fetchall())+1
+        rowid = self.get_last_row_id('data_files','file_ID')+1
         for a_row in all_file_info[1:]:
             cur.execute('INSERT INTO data_files (file_ID,package_ID) VALUES (?,?)',(rowid,package_id,))
             for i in range(len(a_row)):
@@ -150,9 +156,6 @@ class LimsDatabase:
             rowid += 1
         self.conn.commit()
         
-         
-  
-   
     def check_new_run_list(self, all_run_list):
         cur = self.conn.cursor()
         my_list = []
@@ -170,9 +173,9 @@ class LimsDatabase:
         run_name = a_run_info['run_name']
         lane_index = a_lane_info[0]
         content_length = a_lane_info[3]
-        cur.execute('SELECT * FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
+        cur.execute('SELECT http_header FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
         all_rows = cur.fetchall()
-        if len(all_rows) == 1 and all_rows[0].http_header == content_length:
+        if len(all_rows) == 1 and all_rows[0] == content_length:
             return 1   # old data, do nothing
         if len(all_rows) == 0:
             return 2  # new data, download data and insert info into database
@@ -191,6 +194,26 @@ class LimsDatabase:
         cur = self.conn.cursor()
         cur.execute('SELECT * FROM data_files')
         all_rows = cur.fetchall()
-        for a_row in all_rows[1:10]:
+        for a_row in all_rows[-10:-1]:
             print(a_row)
 
+    def delete_last_run(self):
+        cur = self.conn.cursor()
+        #rowid =len(cur.execute('SELECT * from data_packages').fetchall())
+        rowid = self.get_last_row_id('data_packages','package_ID')
+        print(rowid)
+        cur.execute('DELETE FROM data_packages WHERE package_ID = ?', (rowid,))
+        self.conn.commit()
+        
+    def delete_a_run(self, rowid):
+        cur = self.conn.cursor()
+        cur.execute('DELETE FROM data_packages WHERE package_ID = ?', (rowid,))
+        self.conn.commit()
+        
+    def modify_http_header(self, package_ID, new_value):
+        cur = self.conn.cursor()
+        command_string = 'UPDATE data_packages SET http_header = \''+new_value+'\' WHERE package_ID = ?'
+        cur.execute(command_string, (package_ID,)) 
+        self.conn.commit()
+        
+        

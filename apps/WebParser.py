@@ -2,14 +2,13 @@ import requests
 import os
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
-#import tarfile
-#import gzip
+
 from datetime import datetime
 from datetime import date
 import time
 from BeautifulSoup import BeautifulSoup
-#from hashlib import sha256
-import functools
+
+#import functools
 
  
 class WebParser:
@@ -39,8 +38,9 @@ class WebParser:
                     info_for_a_package.append(a_text.strip()) 
                     info_for_a_package = [i for i in info_for_a_package if i != '']
             if len(info_for_a_package) != 0 and info_for_a_package[-1] == "completed":
-                packages.append(info_for_a_package)
-        return packages   
+                packages.append(info_for_a_package) 
+        reverse_list = list(reversed(packages))
+        return reverse_list
     
     def get_runinfo(self, run_url):
         r = self.session_requests.get(run_url, verify=False)
@@ -89,8 +89,14 @@ class WebParser:
                 a_lane.append(download_file_url.get('href'))
                 
                 #check header of a_lane[2]
-                #header_file_size = self.get_header_file_size(a_lane[2])
-                all_headers = self.session_requests.head(a_lane[2])
+                #all_headers = self.session_requests.head(a_lane[2])
+                all_headers = self.session_requests.get(a_lane[2], stream=True)
+                if all_headers.status_code != 200:
+                    print("wrong headers")
+                #print(all_headers.status_code)
+                #if all_headers.status_code != 200:
+                    #all_headers = self.session_requests.get(a_lane[2], stream=True)
+                print(all_headers.status_code)
                 content_length = all_headers.headers['content-length']
                 print(a_lane[2], all_headers.headers)
                 a_lane.append(content_length)
@@ -98,7 +104,6 @@ class WebParser:
             if len(a_lane) > 3:
                 lane_list.append(a_lane)
         lane_list[len(lane_list)-1].append(row_index-1)
-        print(lane_list)
         return lane_list
     
     def get_fileinfo(self, run_url, a_lane_info):
@@ -121,9 +126,7 @@ class WebParser:
         lane_end = a_lane_info[5]+1
         for a_row in table.findAll("tr")[lane_start:lane_end]:
             text_all_cell = self.get_text_arow(a_row,"td")
-            file_list.append(text_all_cell)
-        print(file_list[1])
-        print(file_list[len(file_list)-1])      
+            file_list.append(text_all_cell)     
         return file_list
     
     def get_text_arow(self,a_row, tag):
@@ -160,7 +163,7 @@ class WebParser:
         time_in_min = (end - start) / 60
         time_and_size.append("%.1f" % time_in_min)
         fileSize = os.stat(outputFileName).st_size
-        time_and_size.append(fileSize)
+        time_and_size.append(str(fileSize))
         return time_and_size
         
         
