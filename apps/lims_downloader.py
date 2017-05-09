@@ -61,9 +61,9 @@ def main():
                     lims_database.insert_lane_info(rowid,run_url,a_lane)
                     lims_database.insert_package_info(rowid, time_and_size)
                     lims_database.insert_file_info(rowid,sequence_run.file_info)
-            
-    lims_database.check_dp_table()
-    lims_database.check_df_table() 
+        lims_database.check_dp_table()
+        lims_database.check_df_table() 
+
     lims_database.disconnect()
     
     

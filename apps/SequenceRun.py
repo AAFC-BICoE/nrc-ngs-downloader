@@ -31,11 +31,13 @@ class SequenceRun:
         return True
 
     def name_mapping(self,oldname):
-        # print("mapping ", oldname)
+        #print("mapping old name", oldname)
         oldname_parts = oldname.split("_")
         # print("oldname_parts", oldname_parts[0], oldname_parts[-1])
         index = 0
         for a_row in self.file_info:
+            if index ==2:
+                print(a_row)
             if a_row[1]==oldname_parts[0]:
                 newname = a_row[2]+"_"+oldname_parts[0]+"_"+oldname_parts[-1]
                 fileIndex = index
@@ -44,15 +46,18 @@ class SequenceRun:
 
 
     def rename_files(self):
+        #print(self.file_info)
         path_to_old_file = self.path_destination_folder
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):
             if len(dirname) ==1:
-                path_to_old_file = dirname[0]
+                path_to_old_file = dirpath+"/"+dirname[0]
+                print('getthepath', path_to_old_file, dirpath, dirname[0])
         
-        print(path_to_old_file)      
+        print("rename file", path_to_old_file)      
         for dirpath, dirname,filename in os.walk(path_to_old_file):
             for a_file in filename:
                 oldname, newname,fileIndex = self.name_mapping(a_file)
+                print(oldname,newname,fileIndex)
                 self.file_info[fileIndex].append(newname)
                 self.file_info[fileIndex].append(oldname)
                 oldname = path_to_old_file+"/"+oldname
@@ -66,9 +71,10 @@ class SequenceRun:
                 newnamezip = newname+".gz";
                 with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
                     f_out.writelines(f_in)
-                    fileSize = os.stat(newnamezip).st_size
-                    self.file_info[fileIndex].append(fileSize)
-                    os.unlink(newname)
+                    
+                fileSize = os.stat(newnamezip).st_size
+                self.file_info[fileIndex].append(str(fileSize))
+                os.unlink(newname)
                 self.file_info[fileIndex].append(self.path_destination_folder)
                 self.file_info[fileIndex].append(a_code)
 
