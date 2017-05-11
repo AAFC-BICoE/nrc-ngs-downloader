@@ -58,8 +58,7 @@ class SequenceRun:
             for a_file in filename:
                 oldname, newname,fileIndex = self.name_mapping(a_file)
                 print(oldname,newname,fileIndex)
-                self.file_info[fileIndex].append(newname)
-                self.file_info[fileIndex].append(oldname)
+               
                 oldname = path_to_old_file+"/"+oldname
                 newname = self.path_destination_folder+"/"+newname
                 
@@ -71,7 +70,10 @@ class SequenceRun:
                 newnamezip = newname+".gz";
                 with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
                     f_out.writelines(f_in)
-                    
+                
+                
+                self.file_info[fileIndex].append(newname)
+                self.file_info[fileIndex].append(oldname)   
                 fileSize = os.stat(newnamezip).st_size
                 self.file_info[fileIndex].append(str(fileSize))
                 os.unlink(newname)

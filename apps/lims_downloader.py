@@ -20,10 +20,12 @@ def main():
     
     #connect to database if the database exist
     #otherwise create tables for this database
-    
+   
     lims_database = LimsDatabase(DB_NAME)
+    lims_database.check_dp_table()
     lims_database.delete_a_run(2)
     lims_database.delete_last_run()
+    lims_database.modify_http_header(9, '1876989409')
     lims_database.check_dp_table()
     
     #login to LIMS webpage   

@@ -1,3 +1,4 @@
+
 .PHONY: help install clean_install clean_pyc test_database test_database_check run
 
 help:
@@ -6,23 +7,23 @@ help:
 
 install:
 	virtualenv -p /usr/bin/python2.7 venv
-	source venv/bin/activate
-	pip install -r requirements.txt
+	#source venv/bin/activate
+	venv/bin/pip install -r requirements.txt
 
 clean_install:
-	deactivate
-	rm -rf venv
-	rm -r dist/
-	rm -r *.egg-info/
+	#deactivate
+	find . -name 'venv' -exec rm -rf {}
+	find . -name 'dist/' -exec rm -r {}
+	find . -name '*.egg-info/' -exec rm -r {}
         
-clean-pyc: 
+clean_pyc: 
 	find . -name '*.pyc' -exec rm -f {} + 
 	find . -name '*.pyo' -exec rm -f {} + 
 	find . -name '*~' -exec rm -f {} + 
 	find . -name '__pycache__' -exec rm -fr {} + 
 
 test_database:
-	python test/test_database.py > makeCheckDatabase
+	python test/test_database.py
 	
 test_database_check:
 	python test/test_database_check.py

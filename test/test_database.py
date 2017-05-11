@@ -1,7 +1,8 @@
 import os
 #from datetime import datetime
 from ConfigParser import SafeConfigParser
-
+import sys
+sys.path.append('/home/zhengc/NRC-LIMS-dataDownloader')
 from apps.LimsDatabase import LimsDatabase
 from apps.WebParser import WebParser
 
@@ -12,7 +13,7 @@ from apps.WebParser import WebParser
 def main():
     print("testPackage")
     config_parser = SafeConfigParser()
-    config_parser.read('../config.ini.sample')
+    config_parser.read('/home/zhengc/NRC-LIMS-dataDownloader/config.ini.sample')
     DB_NAME = config_parser.get('sqlite_database', 'name')
     USERNAME = config_parser.get('nrc_lims','username')
     PASSWORD = config_parser.get('nrc_lims','password')
