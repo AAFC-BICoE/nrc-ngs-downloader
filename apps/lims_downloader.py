@@ -10,7 +10,7 @@ from SequenceRun import SequenceRun
 def main():
     # get settings from cinfig.ini.sample file
     config_parser = SafeConfigParser()
-    config_parser.read('../config.ini.sample')
+    config_parser.read('/home/zhengc/NRC-LIMS-dataDownloader/config.ini.sample')
     DB_NAME = config_parser.get('sqlite_database', 'name')
     USERNAME = config_parser.get('nrc_lims','username')
     PASSWORD = config_parser.get('nrc_lims','password')
