@@ -3,10 +3,9 @@ import os
 from ConfigParser import SafeConfigParser
 import sys
 sys.path.append('/home/zhengc/NRC-LIMS-dataDownloader')
-from apps.LimsDatabase import LimsDatabase
-from apps.WebParser import WebParser
+from nrc_ngs_dl.lims_database import LimsDatabase
+from nrc_ngs_dl.web_parser import WebParser
 
-#from SequenceRun import SequenceRun
 
 #import logging
   

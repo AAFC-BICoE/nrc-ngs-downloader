@@ -21,7 +21,7 @@ setup(
     install_requires = requires,
     entry_points={
         'console_scripts': [
-            'lims_downloader = apps.lims_downloader:main',
+            'lims_downloader = nrc_ngs_dl.lims_downloader:main',
             'test_database = test.test_database:main',
             'test_database_check = test.test_database_check:main',
             ],

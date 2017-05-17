@@ -1,8 +1,8 @@
 from ConfigParser import SafeConfigParser
 import sys
 sys.path.append('/home/zhengc/NRC-LIMS-dataDownloader')
-from apps.LimsDatabase import LimsDatabase
-from apps.WebParser import WebParser
+from nrc_ngs_dl import lims_database.LimsDatabase
+from nrc_ngs_dl import web_parser.WebParser
 
     
 def main():
@@ -22,13 +22,13 @@ def main():
     lims_database.check_dp_table()
     #modify database
     print('after delete')
-    lims_database.delete_last_run()
-    lims_database.delete_last_run()
-    lims_database.delete_a_run(3)
+    #lims_database.delete_last_run()
+    lims_database.modify_http_header(9, '1876989409')
+    lims_database.delete_a_run(2)
     lims_database.check_dp_table()
     
     #login to LIMS webpage   
-    web_parser = WebParser(LOGIN_URL,RUNLIST_URL,USERNAME,PASSWORD)
+    web_parser = web_parser(LOGIN_URL,RUNLIST_URL,USERNAME,PASSWORD)
     #get all the information of completed packages
     #url_for_the_run, run_name, plate_name, Plateform, Operator, Creation Date, Description, status
     run_list = web_parser.get_runlist()
@@ -47,12 +47,14 @@ def main():
                 rowid = lims_database.insert_run_info(run_info)
                 lims_database.insert_lane_info(rowid,run_url,a_lane)
                 lims_database.insert_file_info(rowid,file_info)
-            if case ==1:
+            if case ==3:
                 print("re-processed sequence run:", a_lane)
                 #file_info = web_parser.get_fileinfo(run_url,a_lane)
                 #rowid = lims_database.insert_run_info(run_info)
                 #lims_database.insert_lane_info(rowid,run_url,a_lane)
                 #lims_database.insert_file_info(rowid,file_info)
+            if case == 1:
+                print('old data', a_lane)
                 
     lims_database.check_dp_table()
     lims_database.check_df_table()

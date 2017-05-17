@@ -8,6 +8,11 @@ help:
 install:
 	virtualenv -p /usr/bin/python2.7 venv
 	#source venv/bin/activate
+	venv/bin/pip install nrc_ngs_dl
+	
+setup_dev:
+	virtualenv -p /usr/bin/python2.7 venv
+	#source venv/bin/activate
 	venv/bin/pip install -r requirements.txt
 
 clean_install:
@@ -23,12 +28,15 @@ clean_pyc:
 	find . -name '__pycache__' -exec rm -fr {} + 
 
 test_database:
-	python test/test_database.py
+	python test/test_database.py config.ini.sample
 	
 test_database_check:
-	python test/test_database_check.py
+	python test/test_database_check.py config.ini.sample
+	
+test_rename:
+	python test/test_rename.py config.ini.sample
 
 run:
-	python apps/lims_downloader.py > makeRunCheck.txt
+	python apps/lims_downloader.py config.ini.sample
 	
 	
