@@ -23,7 +23,7 @@ setup(
         'console_scripts': [
             'lims_downloader = nrc_ngs_dl.lims_downloader:main',
             'test_database = test.test_database:main',
-            'test_database_check = test.test_database_check:main',
+            'test_database_check = test.test_database_new:main',
             ],
     }
 )

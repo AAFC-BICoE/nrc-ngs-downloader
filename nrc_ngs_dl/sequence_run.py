@@ -18,11 +18,13 @@ class SequenceRun:
         self.path_source_file = os.path.join(dest_folder,a_lane[1])
         self.path_destination_folder = os.path.join(dest_folder,a_lane[1].split('.')[0])
         if os.path.exists(self.path_destination_folder):
+            logger.info('Delete folder for broken/reprocessed data')
             shutil.rmtree(self.path_destination_folder)
         os.mkdir(self.path_destination_folder)
        
     def unzip_package(self):
         try:
+            logger.info('Unzip file ...')
             tar = tarfile.open(self.path_source_file)
             tar.extractall(self.path_destination_folder)
             tar.close()
@@ -49,6 +51,7 @@ class SequenceRun:
 
     def rename_files(self):
         #print(self.file_info)
+        logger.info('Rename files ...')
         path_to_old_file = self.path_destination_folder
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):
             if len(dirname) ==1:
@@ -59,7 +62,7 @@ class SequenceRun:
             for a_file in filename:
                 oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
                 if oldname_short == newname_short:
-                    logger.info("cannot find matching name %s" % (a_file))
+                    logger.info("Cannot find matching name %s" % (a_file))
                 
                 oldname = os.path.join(path_to_old_file, oldname_short)
                 newname = os.path.join(self.path_destination_folder, newname_short)
@@ -86,7 +89,7 @@ class SequenceRun:
                     
                 self.file_info[fileIndex].append(newname_short)
                 self.file_info[fileIndex].append(oldname_short)   
-                fileSize = os.stat(newnamezip).st_size
+                fileSize = os.stat(newname).st_size
                 self.file_info[fileIndex].append(str(fileSize))
                 os.unlink(newname)
                 self.file_info[fileIndex].append(self.path_destination_folder)
@@ -96,7 +99,7 @@ class SequenceRun:
             os.rmdir(path_to_old_file)
 
     def remove_incomplete_data(self, file_name):
-        print('remove incomplete data')
+        logger.info('Remove incomplete data')
         if os.path.isfile(file_name):
             os.remove(file_name)
         if os.path.isdir(file_name):
