@@ -1,13 +1,16 @@
-import os
-import sys
-#from datetime import datetime
-import sqlite3
 import logging
+import os
+import sqlite3
+import sys
 
+
+#from datetime import datetime
 logger  = logging.getLogger('nrc_ngs_dl.lims_database')
 
 class LimsDatabase:
-    
+    RUN_OLD=1
+    RUN_NEW=2
+    RUN_REPROCESSED=3
     def __init__(self,db_name):
         """Initialize the database if not exist; 
         otherwise simply connect to the database
@@ -19,43 +22,39 @@ class LimsDatabase:
                 conn = sqlite3.connect(db_name)
             except:
                 logger.info('Cannot access the database %s' %(db_name))
-                sys.exit(1)
+                raise 
             c = conn.cursor()
-            c.execute('CREATE TABLE data_packages (package_ID INT PRIMARY KEY, action_ID INT)')
-            c.execute('ALTER TABLE data_packages ADD COLUMN download_date TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN time_for_downloading TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN package_size TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN package_name TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN pack_info_url TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN pack_data_url TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN lane_index TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN run_name TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN machine_name TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN plate_name TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN platform TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN run_mode TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN run_type TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN num_cycles INT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN quality_format TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN operator TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN  creation_date TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN description TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN status TEXT')
-            c.execute('ALTER TABLE data_packages ADD COLUMN http_header TEXT')
+            c.execute('''CREATE TABLE data_packages (
+                            package_id INTEGER PRIMARY KEY AUTOINCREMENT,action_id INT,
+                            download_date TEXT,time_for_downloading REAL,
+                            package_size REAL,package_name TEXT,
+                            pack_info_url TEXT,pack_data_url TEXT,
+                            lane_index INT,run_name TEXT,
+                            machine_name TEXT,plate_name TEXT,
+                            platform TEXT,run_mode TEXT,
+                            run_type TEXT,num_cycles INT,
+                            quality_format TEXT,operator TEXT,
+                            creation_date TEXT,description TEXT,
+                            status TEXT,http_content_length INT
+                            )''')
             
-            c.execute('CREATE TABLE data_files (file_ID INT PRIMARY KEY, package_ID INT)')
-            other_column = [['sample_name','TEXT'], ['biomaterial','TEXT'], ['biomaterial_type','TEXT'], 
-                            ['comments','TEXT'], ['principal_investigator','TEXT'], ['mid_tag','TEXT'], 
-                            ['barcode','TEXT'], ['numreads','TEXT'], ['pct_of_reads_in_lane','TEXT'], 
-                            ['new_name','TEXT'], ['original_name','TEXT'],
-                            ['file_size','REAL'],['folder_name','TEXT'], ['SHA256','TEXT'],
-                            ]
-            for a_column in other_column:
-                column_name = a_column[0]
-                column_type = a_column[1]
-                add_string = 'ALTER TABLE data_files ADD COLUMN '+column_name+ ' '+column_type;
-                c.execute(add_string)
-    
+            c.execute('''CREATE TABLE data_files (
+                            file_id INTEGER PRIMARY KEY AUTOINCREMENT, package_id INT,
+                            sample_name TEXT, biomaterial TEXT, 
+                            biomaterial_type TEXT, 
+                            comments TEXT, principal_investigator TEXT, 
+                            mid_tag TEXT, barcode TEXT, 
+                            numreads INT, pct_of_reads_in_lane REAL, 
+                            new_name TEXT, original_name TEXT,
+                            file_size INT,folder_name TEXT, SHA256 TEXT
+                            )''')
+            c.execute('''CREATE TABLE application_action (
+                            action_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            start_time TEXT, end_time TEXT,
+                            command_line TEXT,
+                            version INT 
+            
+            )''')
             conn.commit()
            
         else:
@@ -73,8 +72,29 @@ class LimsDatabase:
     
     ###############################################
     #methods to insert values into different tables
+     
+     
+    def insert_action_info(self,action_info):
+        cur = self.conn.cursor()
+        all_pair = action_info.items()
+        table_column = self.get_fieldname('application_action')
+        column_name, column_value = self.validate_pair(all_pair, table_column)
+        command_str = 'INSERT into application_action '+ column_name
+        cur.execute(command_str, column_value)
+        rowid = self.get_last_row_id('application_action','action_id')
+        self.conn.commit()
+        return rowid
+
     
-    def insert_run_info(self, run_info):
+    def insert_end_time(self,action_id,end_time): 
+        cur = self.conn.cursor()
+        command_str = 'UPDATE application_action SET end_time ="'\
+                       + end_time + '" WHERE action_id = ?'              
+        cur.execute(command_str,(action_id,))
+        self.conn.commit() 
+    
+        
+    def insert_run_info(self, run_info, action_id):
         """Add information of a sequence run to SQLite database
         i.e. run_name,machine_name,plate_name,platform,run_mode,
         run_type,num_cycles,quality_format,operator,creation_date,
@@ -83,21 +103,37 @@ class LimsDatabase:
             run_info (dictionary): information of a sequence run
         """
         cur = self.conn.cursor()
-        rowid = self.get_last_row_id('data_packages','package_ID')+1
+       
+        table_column = self.get_fieldname('data_packages')
+        run_info['action_id'] = action_id
         all_pair = run_info.items()
-        cur.execute('INSERT INTO data_packages (package_ID) VALUES (?)',(rowid,))
-        for a_pair in all_pair: 
-            column_name = a_pair[0]
-            column_value = a_pair[1]
-            table_name = 'data_packages'
-            id_name = 'package_ID'
-            self.insert_a_value(table_name,column_name,column_value,id_name, rowid)
+        column_name, column_value = self.validate_pair(all_pair, table_column)
+        
+        command_str = 'INSERT into data_packages '+ column_name
+        #cur.execute('INSERT INTO data_packages (package_ID) VALUES (?)',(rowid,))
+        cur.execute(command_str, column_value)
+        rowid = self.get_last_row_id('data_packages','package_id')
         self.conn.commit()
-        return rowid  
-    
-    #insert lane information into data_packages
-    #lane_index, information about the zipped file for each lane(package_name/file_name, pack_data_url/fileLink, http-header)
-    # and pack_info_url(run_url)
+        return rowid
+     
+      
+    def validate_pair(self, all_pair, table_column):
+        column_name = '('
+        question = ' VALUES ('
+        column_value = []
+        for a_pair in all_pair:
+            key = a_pair[0]
+            value = a_pair[1]
+            if key in table_column:
+                column_name = column_name+key+','
+                question = question+'?,'
+                column_value.append(value)
+        column_name = column_name[:-1]+')' 
+        question = question[:-1]+')'
+        column_name = column_name + question
+        return column_name, column_value 
+
+
     def insert_lane_info(self, rowid, run_url, a_lane_info):
         """Add information of a lane to SQLite database
         i.e.lane_index, file name of the zipped file, link to the zipped file, link to the sequence run
@@ -108,15 +144,16 @@ class LimsDatabase:
             a_lane_info (list): information of a lane 
         """
         cur = self.conn.cursor()
-        table_name = 'data_packages'
-        column_names = ('pack_info_url','lane_index', 'package_name', 'pack_data_url', 'http_header')
-        column_values = (run_url,str(a_lane_info[0]),a_lane_info[1],a_lane_info[2],a_lane_info[3])
-        id_name = 'package_ID'
-        for index in range(len(column_names)):
-            self.insert_a_value(table_name, column_names[index], column_values[index], id_name, rowid)
+        command_str = 'UPDATE data_packages SET pack_info_url ="'\
+                       + run_url+'",lane_index = '\
+                       + a_lane_info['lane_index']+ ',package_name = "'\
+                       + a_lane_info['package_name'] +'",pack_data_url = "'\
+                       + a_lane_info['pack_data_url'] +'",http_content_length ='\
+                       + a_lane_info['http_content_length'] + ' WHERE package_id = ?'              
+        cur.execute(command_str,(rowid,))
         self.conn.commit()
         
-    #insert package_size, date_to_download and total time to download(in minutes)   
+          
     def insert_package_info(self,rowid, date_time_size):
         """Add information of a zipped file to SQLite database
         i.e. date, time (in minutes) and size of the file
@@ -124,15 +161,16 @@ class LimsDatabase:
             rowid (int): primary key of the record for this zipped file
         """
         cur = self.conn.cursor()
-        table_name = 'data_packages'
-        column_names = ('download_date','time_for_downloading', 'package_size')
-        id_name = 'package_ID'
-        for index in range(len(column_names)):
-            self.insert_a_value(table_name, column_names[index], date_time_size[index], id_name, rowid)
+        command_str = 'UPDATE data_packages SET download_date ="'\
+                       + date_time_size[0]+'",time_for_downloading = '\
+                       + date_time_size[1]+ ',package_size = '\
+                       + date_time_size[2]+ ' WHERE package_id = ?'
+                                   
+        cur.execute(command_str,(rowid,))
         self.conn.commit()
         
           
-    def insert_file_info(self, package_id, all_file_info):
+    def insert_file_info(self, package_id, all_file_info, lane_index):
         """Add information of all the fastq files to SQLite database
         i.e.
         Args:
@@ -140,21 +178,16 @@ class LimsDatabase:
             all_file_info (list): 
         """
         cur = self.conn.cursor()
-        rowid = self.get_last_row_id('data_files','file_ID')+1
-        for a_row in all_file_info[1:]:
-            if len(a_row) != len(all_file_info[0]):
-                logger.info('different length between keys and values')
-            else:
-                cur.execute('INSERT INTO data_files (file_ID,package_ID) VALUES (?,?)',(rowid,package_id,))
-                for i in range(len(a_row)):
-                    column_name = all_file_info[0][i]
-                    column_value = a_row[i]
-                    table_name = 'data_files'
-                    id_name = 'file_ID'
-                    self.insert_a_value(table_name,column_name,column_value,id_name, rowid)
-                rowid += 1
+        table_column = self.get_fieldname('data_files')
+        for a_row in all_file_info:
+            if a_row['lane_index'] == lane_index:
+                a_row['package_id'] = package_id
+                all_pair = a_row.items()
+                column_name, column_value = self.validate_pair(all_pair, table_column)
+                command_str = 'INSERT into data_files '+ column_name
+                cur.execute(command_str, column_value)
         self.conn.commit()
-    
+   
    
     def get_last_row_id(self,table_name, id):
         cur = self.conn.cursor()
@@ -165,50 +198,56 @@ class LimsDatabase:
             max_id = 0
         return max_id
         
-    def insert_a_value(self,table_name, column_name, column_value,id_name, rowid):
-        cur = self.conn.cursor()
-        if self.has_column(table_name, column_name):
-            command_string = 'UPDATE '+table_name+' SET ' + column_name + ' = \''+ column_value +'\' WHERE '+id_name +'= ?'
-            cur.execute(command_string, (rowid,))
         
-    def has_column(self, table_name, column_name): 
+    def get_fieldname(self,table_name):
+        """Get the column names of a table"""
         cur = self.conn.cursor()
         command_string = 'select * from '+table_name
         cur.execute(command_string)
         fieldnames = [f[0] for f in cur.description]
-        if column_name in fieldnames:
-            return True
-        return False
-    
-    ############################################
-    #method to check new runs and re-processed runs
-    #by considering run_name, lane_index and http-header(content_length)
+        return fieldnames
+   
+   
     def check_new_run(self,a_run_info, a_lane_info):
-        """
+        """check a sequence run against database 
+        by considering run_name, lane_index and http-header(content_length)
         """
         cur = self.conn.cursor()
         run_name = a_run_info['run_name']
-        lane_index = a_lane_info[0]
-        content_length = a_lane_info[3]
-        cur.execute('SELECT http_header FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
+        lane_index = a_lane_info['lane_index']
+        content_length = a_lane_info['http_content_length']
+        cur.execute('SELECT http_content_length FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
         all_rows = cur.fetchall()
         if len(all_rows) == 1:
             content_length_old = all_rows[0][0]
-            #print(content_length_old, content_length)
             if content_length_old == content_length:
-                return 1  #old data, do nothing
+                return self.RUN_OLD  #old data, do nothing
             else:
-                return 3  # reprocessed data
-            
+                return self.RUN_REPROCESSED  # reprocessed data
         if len(all_rows) == 0:
-            return 2  # new data, download data and insert info into database
-        
-        return 1    # old data 
+            return self.RUN_NEW  # new data, download data and insert info into database
+        return self.RUN_OLD    # old data 
     
     
-    ################################################
-    #methods to print out tables in SQLite database    
+    def delete_old_run(self,a_run_info, a_lane_info):
+        """delete old information related to re-processed sequence run"""
+        cur = self.conn.cursor()
+        run_name = a_run_info['run_name']
+        lane_index = a_lane_info['lane_index']
+        cur.execute('SELECT package_id FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
+        all_rows = cur.fetchall()
+        if len(all_rows) == 1:
+            package_ID_old = all_rows[0][0]
+            cur.execute('DELETE FROM data_packages WHERE package_id =?',(package_ID_old,))
+            cur.execute('DELETE FROM data_files WHERE package_id =?',(package_ID_old,))
+        if len(all_rows) == 0:
+            logger.error('Cannot find information of re-processed data')
+        if len(all_rows) > 1:
+            logger.error('duplicate information of re-processed data')
      
+     
+    ##############all the methods below can be removed###############
+    #methods to print out tables in SQLite database    
     def check_dp_table(self):
         """print out all rows in data_package table"""
         cur = self.conn.cursor()
@@ -217,7 +256,6 @@ class LimsDatabase:
         for a_row in all_rows:
             print(a_row)
     
-    
     def check_df_table(self):
         """print out all rows in data_file table"""
         cur = self.conn.cursor()
@@ -225,53 +263,23 @@ class LimsDatabase:
         all_rows = cur.fetchall()
         for a_row in all_rows[-10:-1]:
             print(a_row)
-    
-
-    def get_fieldname(self,table_name):
-        """print out column names of a table"""
-        cur = self.conn.cursor()
-        command_string = 'select * from '+table_name
-        cur.execute(command_string)
-        fieldnames = [f[0] for f in cur.description]
-        print(fieldnames)
-        return fieldnames
-    
-    def delete_old_run(self,a_run_info, a_lane_info):
-        """delete old information related to re-processed sequence run"""
-        cur = self.conn.cursor()
-        run_name = a_run_info['run_name']
-        lane_index = a_lane_info[0]
-        cur.execute('SELECT package_ID FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
-        all_rows = cur.fetchall()
-        if len(all_rows) == 1:
-            package_ID_old = all_rows[0][0]
-            cur.execute('DELETE FROM data_packages WHERE package_ID =?',(package_ID_old,))
-            cur.execute('DELETE FROM data_files WHERE package_ID =?',(package_ID_old,))
-        if len(all_rows) == 0:
-            logger.info('Cannot find information of re-processed data')
-        if len(all_rows) > 1:
-            logger.info('duplicate information of re-processed data')
-            
-    #######################################################
+                   
     #some methods to modify the database, 
     #only useful for testing the method: check_new_run
-    
-    
     def delete_last_run(self):
         """delete last row in table data_package"""
         cur = self.conn.cursor()
-        rowid = self.get_last_row_id('data_packages','package_ID')
+        rowid = self.get_last_row_id('data_packages','package_id')
         print(rowid)
-        cur.execute('DELETE FROM data_packages WHERE package_ID = ?', (rowid,))
-        cur.execute('DELETE FROM data_files WHERE package_ID =?',(rowid,))
+        cur.execute('DELETE FROM data_packages WHERE package_id = ?', (rowid,))
+        cur.execute('DELETE FROM data_files WHERE package_id =?',(rowid,))
         self.conn.commit()
-    
     
     def delete_a_run(self, rowid):
         """delete a sequence run with the row_id, if it exists"""
         cur = self.conn.cursor()
-        cur.execute('DELETE FROM data_packages WHERE package_ID = ?', (rowid,))
-        cur.execute('DELETE FROM data_files WHERE package_ID =?',(rowid,))
+        cur.execute('DELETE FROM data_packages WHERE package_id = ?', (rowid,))
+        cur.execute('DELETE FROM data_files WHERE package_id =?',(rowid,))
         self.conn.commit()
     
     def modify_http_header(self, package_ID, new_value):
@@ -281,4 +289,8 @@ class LimsDatabase:
         cur.execute(command_string, (package_ID,)) 
         self.conn.commit()
         
-        
+    def insert_a_value(self,table_name, column_name, column_value,id_name, rowid):
+        cur = self.conn.cursor()
+        if self.has_column(table_name, column_name):
+            command_string = 'UPDATE '+table_name+' SET ' + column_name + ' = \''+ column_value +'\' WHERE '+id_name +'= ?'
+            cur.execute(command_string, (rowid,))   

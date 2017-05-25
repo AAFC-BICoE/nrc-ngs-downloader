@@ -1,4 +1,5 @@
 import os
+import copy
 import logging
 import shutil
 import tarfile
@@ -8,21 +9,23 @@ from hashlib import sha256
 logger  = logging.getLogger('nrc_ngs_dl.sequence_run')
 class SequenceRun:
     def __init__(self, a_lane, file_info, dest_folder):
-        self.data_url = a_lane[2]
+        """Initialize the object 
+        Args:
+            a_lane: information of a lane
+            file_info: information of all the files in this lane
+            dest_folder: the folder to keep all the fastq files of this lane
+        """
+        self.data_url = a_lane['pack_data_url']
         self.file_info = file_info
-        self.file_info[0].append('new_name')
-        self.file_info[0].append('original_name')
-        self.file_info[0].append('file_size')
-        self.file_info[0].append('folder_name')
-        self.file_info[0].append('SHA256')
-        self.path_source_file = os.path.join(dest_folder,a_lane[1])
-        self.path_destination_folder = os.path.join(dest_folder,a_lane[1].split('.')[0])
+        self.path_source_file = os.path.join(dest_folder,a_lane['package_name'])
+        self.path_destination_folder = os.path.join(dest_folder,a_lane['package_name'].split('.')[0])
         if os.path.exists(self.path_destination_folder):
             logger.info('Delete folder for broken/reprocessed data')
             shutil.rmtree(self.path_destination_folder)
         os.mkdir(self.path_destination_folder)
        
     def unzip_package(self):
+        """Unzip a .tar or .tar.gz file"""
         try:
             logger.info('Unzip file ...')
             tar = tarfile.open(self.path_source_file)
@@ -34,13 +37,12 @@ class SequenceRun:
         return True
 
     def name_mapping(self,oldname):
-        #print("mapping old name", oldname)
+        """Find the correspondent new name for a file"""
         oldname_parts = oldname.split("_")
-        # print("oldname_parts", oldname_parts[0], oldname_parts[-1])
         index = 0
         for a_row in self.file_info:
-            if a_row[1]==oldname_parts[0]:
-                newname = a_row[2]+"_"+oldname_parts[0]+"_"+oldname_parts[-1]
+            if a_row['sample_name']==oldname_parts[0]:
+                newname = a_row['biomaterial']+"_"+oldname_parts[0]+"_"+oldname_parts[-1]
                 fileIndex = index
             index+=1
         if newname is None:
@@ -50,12 +52,11 @@ class SequenceRun:
 
 
     def rename_files(self):
-        #print(self.file_info)
+        """Rename files in a lane with new names"""
         logger.info('Rename files ...')
         path_to_old_file = self.path_destination_folder
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):
             if len(dirname) ==1:
-                #path_to_old_file = dirpath+"/"+dirname[0]
                 path_to_old_file = os.path.join(dirpath,dirname[0])
             
         for dirpath, dirname,filename in os.walk(path_to_old_file):
@@ -76,33 +77,21 @@ class SequenceRun:
                 with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
                     f_out.writelines(f_in)
                 
-                if len(self.file_info[0]) == len(self.file_info[fileIndex]):
-                    #create a new row by coping file_info[fileIndex]
-                    last_index = len(self.file_info)
-                    new_row = []
-                    index = 0
-                    while index < len(self.file_info[fileIndex])-5 :
-                        new_row.append(self.file_info[fileIndex][index])
-                        index+=1
-                    self.file_info.append(new_row)   
-                    fileIndex = last_index
+                #if self.file_info[fileIndex] has old name, new name. sha256
+                if 'new_name' in self.file_info[fileIndex]:
+                    new_row = copy.deepcopy(self.file_info[fileIndex])
+                    fileIndex = len(self.file_info)
+                    self.file_info.append(new_row)
                     
-                self.file_info[fileIndex].append(newname_short)
-                self.file_info[fileIndex].append(oldname_short)   
-                fileSize = os.stat(newname).st_size
-                self.file_info[fileIndex].append(str(fileSize))
+                self.file_info[fileIndex]['original_name'] = oldname_short
+                self.file_info[fileIndex]['new_name'] = newname_short
+                self.file_info[fileIndex]['folder_name'] = self.path_destination_folder
+                self.file_info[fileIndex]['SHA256'] = a_code
+                self.file_info[fileIndex]['file_size'] = os.stat(newname).st_size
                 os.unlink(newname)
-                self.file_info[fileIndex].append(self.path_destination_folder)
-                self.file_info[fileIndex].append(a_code)
-
+                
         if os.path.isdir(path_to_old_file):
             os.rmdir(path_to_old_file)
 
-    def remove_incomplete_data(self, file_name):
-        logger.info('Remove incomplete data')
-        if os.path.isfile(file_name):
-            os.remove(file_name)
-        if os.path.isdir(file_name):
-            shutil.rmtree(file_name)
         
       

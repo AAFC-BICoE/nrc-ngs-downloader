@@ -1,6 +1,6 @@
-import requests
+#import requests
 import os
-import sys
+#import sys
 import logging
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
@@ -32,8 +32,8 @@ class WebParser:
         try:
             session_requests.post(login_url, verify=False, data=login_data)
         except:
-            logger.info('Cannot log into the NRC-LIMS web page')
-            sys.exit(1)
+            logger.error('Wrong address of login page %s' % login_url)
+            raise
         self.session_requests = session_requests
         self.runlist_url = runlist_url
     
@@ -47,34 +47,34 @@ class WebParser:
             A list of links to the completed sequence runs
         """
         packages = []
-        try:
-            r = self.session_requests.get(self.runlist_url, verify=False)
-        except:
-            logger.info('Cannot access the page of run_list')
-            sys.exit(1)
+        
+        r = self.session_requests.get(self.runlist_url, verify=False)
+        if r.url != self.runlist_url:
+            logger.error('Failed to login, check your username, password and link to run_list page %s ' % self.runlist_url)
+            raise
         soup = BeautifulSoup(r.content)
         try:
             table = self.get_table(soup, table_id)
         except:
-            logger.info('Cannot get the table %s' % (table_id))
-            sys.exit(1)
+            logger.error('Cannot get the table %s' % (table_id))
+            raise
     
         title_row = table.findAll('tr')[0]
         keys = self.get_text_arow(title_row,'th')
+        print(keys)
         index_link = keys.index(link_column)
         index_status = keys.index(status_column)
         
         for row in table.findAll('tr')[1:]:
             cells = row.findAll('td')
             run_link_here = cells[index_link].find('a',href = True).get('href')
-            #run_name_here = self.get_text_acell(cells[index_link])
             status_here = self.get_text_acell(cells[index_status])
             if status_here == 'completed':
                 packages.append(run_link_here)
-        
+       
         reverse_list = list(reversed(packages))
-        #print(reverse_list)
-        return reverse_list   
+        return reverse_list  
+        #return packages 
     
     def get_runinfo(self, run_url):
         """Parse information of a sequence run
@@ -90,20 +90,20 @@ class WebParser:
             r = self.session_requests.get(run_url, verify=False)
         except:
             logger.info('Cannot access the page of sequence run %s ' % (run_url))
-            sys.exit(1)
+            raise
         soup = BeautifulSoup(r.content)
         run_info = {}
         try:
             table = soup.find('table', {'class':'label_value'})
         except:
-            logger.info('Cannot find the table of label_value')
-            sys.exit(1)
+            logger.info('Cannot find the run info table')
+            raise
             
         for a_row in table.findAll('tr'):
             two_cells = a_row.findAll('td')
             if len(two_cells)!=2:
-                logging.info('More than two columns in table label_value')
-                
+                logging.warn('More than two columns in run info table')
+                raise
             column_name = self.get_text_acell(two_cells[0])
             column_value = self.get_text_acell(two_cells[1])   
             column_name = column_name.lower()
@@ -123,75 +123,23 @@ class WebParser:
         Returns:
             A list of lanes in a sequence run 
         """
-        try:
-            r = self.session_requests.get(run_url, verify=False)
-        except:
-            logger.info('Cannot access the page of sequence run %s ' % (run_url))
-            sys.exit(1)
-        soup = BeautifulSoup(r.content)
-        try:
-            table = self.get_table(soup, table_id)
-        except:
-            logger.info('Cannot find the table %' % (table_id))
-            sys.exit(1)
-        #table = soup.find("table", {"class":"lims"})
-        title_row = table.findAll('tr')[0]
-        keys = self.get_text_arow(title_row,'th')
-        index_lane = keys.index(column_lane)
-        index_download = keys.index(column_link)
         lane_list = []
-        row_index = 1
-        for a_row in table.findAll('tr')[1:]:
-            row_index += 1
-            a_lane = []
-            #a_line = self.get_text_arow(a_row,"td")
-            all_cell = a_row.findAll('td')
-            lane_number = self.get_text_acell(all_cell[index_lane])
-            download_file_url = all_cell[index_download].find('a', href=True)  
-            if lane_number != '' and len(download_file_url) == 1:
-                previous_lane_end = row_index-2
-                if previous_lane_end > 0:
-                    lane_list[len(lane_list)-1].append(previous_lane_end)
-                a_lane.append(lane_number)
-                a_lane.append(download_file_url.string.strip())
-                a_lane.append(download_file_url.get('href'))
-                all_headers = self.session_requests.get(a_lane[2], stream=True)
-                if all_headers.status_code != 200:
-                    logger.info('Wrong headers %s' % (a_lane[2]))
-                #print(all_headers.status_code)
-                #if all_headers.status_code != 200:
-                    #all_headers = self.session_requests.get(a_lane[2], stream=True)
-                content_length = all_headers.headers['content-length']
-                a_lane.append(content_length)
-                a_lane.append((row_index))  #start of a lane
-            if len(a_lane) > 3:
-                lane_list.append(a_lane)
-        lane_list[len(lane_list)-1].append(row_index-1)
-        return lane_list
-    
-    def get_fileinfo(self, run_url, a_lane_info,table_id):
-        """Parse information of all the fastq files within a lane 
-        Args:
-            run_url (str): link to a sequence run
-            a_lane_info (str):
-            table_id (str): tags to get the table
-        Returns:
-            Information of all the fastq files
-        """
         file_list = []
         try:
             r = self.session_requests.get(run_url, verify=False)
         except:
             logger.info('Cannot access the page of sequence run %s ' % (run_url))
-            sys.exit(1)
+            raise
         soup = BeautifulSoup(r.content)
         try:
             table = self.get_table(soup, table_id)
         except:
-            logger.info('Cannot find the table %s' % (table_id))
-            sys.exit(1)
+            logger.info('Cannot find the table %' % (table_id))
+            raise
         title_row = table.findAll('tr')[0]
         keys = self.get_text_arow(title_row,'th')
+        index_lane = keys.index(column_lane)
+        index_download = keys.index(column_link)
         new_keys=[]
         for each_key in keys:
             each_key = each_key.replace('%', 'pct')
@@ -200,15 +148,40 @@ class WebParser:
             link = '_'
             each_key = link.join(each_key_part)
             new_keys.append(each_key)
-        file_list.append(new_keys)
-        lane_start = a_lane_info[4]
-        lane_end = a_lane_info[5]+1
-        for a_row in table.findAll('tr')[lane_start:lane_end]:
+        
+        for a_row in table.findAll('tr')[1:]:
             text_all_cell = self.get_text_arow(a_row,'td')
-            file_list.append(text_all_cell)     
-        return file_list
+            all_cell = a_row.findAll('td')
+            
+            lane_number = text_all_cell[index_lane]
+            download_file_url = all_cell[index_download].find('a', href=True) 
+             
+            if lane_number != '' and len(download_file_url) == 1:
+                a_lane = {}
+                lane_index_now = lane_number
+                
+                a_lane['lane_index'] = lane_number
+                a_lane['package_name'] = download_file_url.string.strip();
+                a_lane['pack_data_url'] = download_file_url.get('href')
+                
+                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True)
+                if all_headers.status_code != 200:
+                    logger.warn('Wrong headers %s' % (a_lane['pack_data_url']))
+                a_lane['http_content_length'] = all_headers.headers['content-length'] 
+                lane_list.append(a_lane)
+            else:
+                
+                if len(new_keys) != len(text_all_cell):
+                    logging.warn('Different length in title and content of a table')
+                else:
+                    a_file ={}
+                    for index in range(len(new_keys)):
+                        a_file[new_keys[index]] = text_all_cell[index]
+                    a_file['lane_index'] = lane_index_now
+                file_list.append(a_file)
+                
+        return lane_list, file_list
     
-
     def get_text_arow(self,a_row, tag):
         """Get the text for all the cells of a row
         Args:
@@ -236,19 +209,20 @@ class WebParser:
 
     def get_text_acell(self,a_cell):
         """ Get the text in a specific cell of a table"""
-        a_text = a_cell.findAll(text = True)
-        a_text = [i for i in a_text if i not in ('\n', '')]
-        if len(a_text) == 0:
+        text = a_cell.findAll(text = True)
+        text = [i.strip() for i in text if i not in ('\n', '')]
+        if len(text) == 0:
             a_text = ''
         else:
-            a_text = a_text[0].strip()
+            link='_'
+            a_text = link.join(text)
         return a_text
     
-    def download_zipfile(self, urlAddress, outputFileName):
+    def download_zipfile(self, url, file_path):
         """Download a zip file
         Args:
-            urlAddress: link to the file
-            outputFileName: path and file name to hold the file
+            url: link to the file
+            file_path: path and file name to hold the file
         Returns:
             Date to download the file
             Time (in minutes) spend on downloading the file
@@ -258,10 +232,10 @@ class WebParser:
         download_date = date.today().strftime('%m/%d/%Y')
         time_and_size.append(download_date)
         start = time.time()
-        chunkSize = 4096 * 512 * 4
+        chunkSize = 1024 * 512
         totalSize = 0
-        res = self.session_requests.get(urlAddress, stream=True)
-        with open(outputFileName, 'wb') as output:
+        res = self.session_requests.get(url, stream=True, verify=False)
+        with open(file_path, 'wb') as output:
             chunknumber = 0
             for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
                 if chunk:
@@ -272,7 +246,7 @@ class WebParser:
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)
-        fileSize = os.stat(outputFileName).st_size
+        fileSize = os.stat(file_path).st_size
         time_and_size.append(str(fileSize))
         return time_and_size
         
