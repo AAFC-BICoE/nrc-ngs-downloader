@@ -28,15 +28,15 @@ clean_pyc:
 	find . -name '__pycache__' -exec rm -fr {} + 
 
 test_database:
-	python test/test_database.py config.ini.sample
+	python test/test_database.py -c config.ini.sample
 	
 test_database_check:
-	python test/test_database_check.py config.ini.sample
+	python test/test_database_check.py -c config.ini.sample
 	
 test_rename:
-	python test/test_rename.py config.ini.sample
+	python test/test_rename.py -c config.ini.sample
 
 run:
-	python apps/lims_downloader.py config.ini.sample
+	python apps/lims_downloader.py -c config.ini.sample
 	
 	

@@ -35,7 +35,8 @@ class LimsDatabase:
                             run_type TEXT,num_cycles INT,
                             quality_format TEXT,operator TEXT,
                             creation_date TEXT,description TEXT,
-                            status TEXT,http_content_length INT
+                            status TEXT,http_content_length INT,
+                            FOREIGN KEY(action_id) REFERENCES application_action(action_id)
                             )''')
             
             c.execute('''CREATE TABLE data_files (
@@ -46,15 +47,17 @@ class LimsDatabase:
                             mid_tag TEXT, barcode TEXT, 
                             numreads INT, pct_of_reads_in_lane REAL, 
                             new_name TEXT, original_name TEXT,
-                            file_size INT,folder_name TEXT, SHA256 TEXT
+                            file_size INT,folder_name TEXT, SHA256 TEXT,
+                            FOREIGN KEY(package_id) REFERENCES data_packages(package_id)
                             )''')
             c.execute('''CREATE TABLE application_action (
                             action_id INTEGER PRIMARY KEY AUTOINCREMENT,
                             start_time TEXT, end_time TEXT,
+                            machine_ip TEXT, directory_name TEXT,
+                            package_downloaded INT,
                             command_line TEXT,
                             version INT 
-            
-            )''')
+                        )''')
             conn.commit()
            
         else:
@@ -62,7 +65,8 @@ class LimsDatabase:
                 conn = sqlite3.connect(db_name)
             except:
                 logger.info('Cannot access the database %s' % (db_name))
-                sys.exit(1)
+                raise
+            
         self.conn = conn
     
     #close the database
@@ -92,7 +96,13 @@ class LimsDatabase:
                        + end_time + '" WHERE action_id = ?'              
         cur.execute(command_str,(action_id,))
         self.conn.commit() 
-    
+        
+    def update_package_downloaded(self, package_downloaded, action_id):
+        cur = self.conn.cursor()
+        command_str = 'UPDATE application_action SET package_downloaded = ?  WHERE action_id = ?'              
+        
+        cur.execute(command_str,(package_downloaded, action_id,))
+        self.conn.commit() 
         
     def insert_run_info(self, run_info, action_id):
         """Add information of a sequence run to SQLite database
@@ -128,6 +138,8 @@ class LimsDatabase:
                 column_name = column_name+key+','
                 question = question+'?,'
                 column_value.append(value)
+            else:
+                logger.warn('Cannot find %s in database'% key )
         column_name = column_name[:-1]+')' 
         question = question[:-1]+')'
         column_name = column_name + question
@@ -208,7 +220,7 @@ class LimsDatabase:
         return fieldnames
    
    
-    def check_new_run(self,a_run_info, a_lane_info):
+    def get_run_case(self,a_run_info, a_lane_info):
         """check a sequence run against database 
         by considering run_name, lane_index and http-header(content_length)
         """

@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import argparse
+import socket
 from ConfigParser import SafeConfigParser
 from datetime import datetime
 
@@ -31,6 +32,8 @@ def main():
     start = datetime.now()
     action_info['start_time'] = start.strftime(time_format)
     
+    action_info['machine_ip'] = socket.gethostbyname(socket.gethostname())
+    action_info['directory_name'] = os.getcwd()
     link = ' '
     command_line = link.join(sys.argv)
     action_info['command_line']= command_line
@@ -74,7 +77,7 @@ def main():
     #otherwise create tables for this database
     lims_database = LimsDatabase(config_setting.db_name)
     if lims_database is None:
-        logger.error('Cannot access the database')
+        logger.error('Cannot access the database %s' % config_setting.db_name)
         sys.exit(1)
     
     action_id = lims_database.insert_action_info(action_info)
@@ -99,7 +102,8 @@ def main():
     #1. check if it is a new data or re-processed data
     #2. in the case of reprocessed data: remove the data and related information in the sqlite database
     #3. in the case of new/reprocessed data: download the data, insert the information of the data into database tables 
-    for run_url in run_list[1:2]:
+    package_downloaded = 0
+    for run_url in run_list[1:3:2]:
         try:
             run_info = web_parser.get_runinfo(run_url)
         except:
@@ -108,8 +112,9 @@ def main():
             lane_list, file_list = web_parser.get_laneinfo(run_url,config_setting.table_file_list, config_setting.column_lane, config_setting.column_file_link)
         except:
             continue
+      
         for a_lane in lane_list:
-            case = lims_database.check_new_run(run_info,a_lane)
+            case = lims_database.get_run_case(run_info,a_lane)
             if case == lims_database.RUN_REPROCESSED:
                 logger.info('Delete records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 lims_database.delete_old_run(run_info, a_lane)
@@ -121,10 +126,13 @@ def main():
                 sequence_run = SequenceRun(a_lane, file_list, config_setting.destination_folder)
                 if sequence_run.unzip_package():
                     sequence_run.rename_files()
+                    package_downloaded +=1
                     rowid = lims_database.insert_run_info(run_info,action_id)
                     lims_database.insert_file_info(rowid,sequence_run.file_info, a_lane['lane_index'])
                     lims_database.insert_package_info(rowid, time_and_size)
                     lims_database.insert_lane_info(rowid,run_url,a_lane)
+                    lims_database.update_package_downloaded(package_downloaded, action_id)
+                    
     
     end = datetime.now().strftime(time_format)
     lims_database.insert_end_time(action_id, end)

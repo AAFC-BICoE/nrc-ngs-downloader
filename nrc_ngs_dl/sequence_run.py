@@ -27,7 +27,7 @@ class SequenceRun:
     def unzip_package(self):
         """Unzip a .tar or .tar.gz file"""
         try:
-            logger.info('Unzip file ...')
+            logger.info('Unzip file')
             tar = tarfile.open(self.path_source_file)
             tar.extractall(self.path_destination_folder)
             tar.close()
@@ -46,52 +46,51 @@ class SequenceRun:
                 fileIndex = index
             index+=1
         if newname is None:
-            logger.info('cannot find matching file in file list')
-            newname = oldname    
+            logger.info('cannot find matching name %s' % oldname)
+            newname = oldname+'_old_name'    
         return oldname, newname, fileIndex
 
 
     def rename_files(self):
         """Rename files in a lane with new names"""
-        logger.info('Rename files ...')
-        path_to_old_file = self.path_destination_folder
+        logger.info('Rename files')
+        #path_to_old_file = self.path_destination_folder
+        path_to_old_file = []
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):
-            if len(dirname) ==1:
-                path_to_old_file = os.path.join(dirpath,dirname[0])
-            
-        for dirpath, dirname,filename in os.walk(path_to_old_file):
-            for a_file in filename:
-                oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
-                if oldname_short == newname_short:
-                    logger.info("Cannot find matching name %s" % (a_file))
+            for a_dirname in dirname:
+                path_to_old_file.append(os.path.join(dirpath,a_dirname))
+        
+        for a_path in path_to_old_file:    
+            for dirpath, dirname,filename in os.walk(a_path):
+                for a_file in filename:
+                    oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
+                    oldname = os.path.join(a_path, oldname_short)
+                    newname = os.path.join(self.path_destination_folder, newname_short)
                 
-                oldname = os.path.join(path_to_old_file, oldname_short)
-                newname = os.path.join(self.path_destination_folder, newname_short)
-                
-                f = open(oldname, 'rb')
-                a_code = sha256(f.read()).hexdigest();
-                os.rename(oldname, newname)
+                    f = open(oldname, 'rb')
+                    a_code = sha256(f.read()).hexdigest();
+                    os.rename(oldname, newname)
                     #zip file and sha256
                 
-                newnamezip = newname+".gz";
-                with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
-                    f_out.writelines(f_in)
+                    newnamezip = newname+".gz";
+                    with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
+                        f_out.writelines(f_in)
                 
-                #if self.file_info[fileIndex] has old name, new name. sha256
-                if 'new_name' in self.file_info[fileIndex]:
-                    new_row = copy.deepcopy(self.file_info[fileIndex])
-                    fileIndex = len(self.file_info)
-                    self.file_info.append(new_row)
+                    #if self.file_info[fileIndex] has old name, new name. sha256
+                    if 'new_name' in self.file_info[fileIndex]:
+                        new_row = copy.deepcopy(self.file_info[fileIndex])
+                        fileIndex = len(self.file_info)
+                        self.file_info.append(new_row)
                     
-                self.file_info[fileIndex]['original_name'] = oldname_short
-                self.file_info[fileIndex]['new_name'] = newname_short
-                self.file_info[fileIndex]['folder_name'] = self.path_destination_folder
-                self.file_info[fileIndex]['SHA256'] = a_code
-                self.file_info[fileIndex]['file_size'] = os.stat(newname).st_size
-                os.unlink(newname)
+                    self.file_info[fileIndex]['original_name'] = oldname_short
+                    self.file_info[fileIndex]['new_name'] = newname_short
+                    self.file_info[fileIndex]['folder_name'] = self.path_destination_folder
+                    self.file_info[fileIndex]['SHA256'] = a_code
+                    self.file_info[fileIndex]['file_size'] = os.stat(newname).st_size
+                    os.unlink(newname)
                 
-        if os.path.isdir(path_to_old_file):
-            os.rmdir(path_to_old_file)
+            if os.path.isdir(a_path):
+                os.rmdir(a_path)
 
         
       

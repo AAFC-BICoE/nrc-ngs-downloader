@@ -43,7 +43,7 @@ def main():
         sys.exit(1)
         
     lims_database.modify_http_header(9, '1876989409')
-    lims_database.delete_a_run(2)
+    #lims_database.delete_a_run(2)
     #login to LIMS webpage
     lims_database.disconnect()
     
