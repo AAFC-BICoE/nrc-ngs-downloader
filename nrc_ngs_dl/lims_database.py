@@ -1,10 +1,7 @@
 import logging
 import os
 import sqlite3
-import sys
 
-
-#from datetime import datetime
 logger  = logging.getLogger('nrc_ngs_dl.lims_database')
 
 class LimsDatabase:
@@ -16,7 +13,7 @@ class LimsDatabase:
         otherwise simply connect to the database
         """
         self.db_name = db_name
-        logger.info('Connect to database...')
+        logger.info('Connecting to the database')
         if os.path.isfile(db_name) == False:
             try:
                 conn = sqlite3.connect(db_name)
@@ -69,16 +66,13 @@ class LimsDatabase:
             
         self.conn = conn
     
-    #close the database
     def disconnect(self):
+        """Close the connection to the database"""
         self.conn.close()
     
-    
-    ###############################################
-    #methods to insert values into different tables
-     
      
     def insert_action_info(self,action_info):
+        """Insert the information of program execution into Sqlite database"""
         cur = self.conn.cursor()
         all_pair = action_info.items()
         table_column = self.get_fieldname('application_action')
@@ -91,6 +85,7 @@ class LimsDatabase:
 
     
     def insert_end_time(self,action_id,end_time): 
+        """Insert the end time of the program execution into Sqlite database"""
         cur = self.conn.cursor()
         command_str = 'UPDATE application_action SET end_time ="'\
                        + end_time + '" WHERE action_id = ?'              
@@ -98,6 +93,7 @@ class LimsDatabase:
         self.conn.commit() 
         
     def update_package_downloaded(self, package_downloaded, action_id):
+        """Update the number of packages that downloaded by this program execution"""
         cur = self.conn.cursor()
         command_str = 'UPDATE application_action SET package_downloaded = ?  WHERE action_id = ?'              
         
@@ -105,12 +101,15 @@ class LimsDatabase:
         self.conn.commit() 
         
     def insert_run_info(self, run_info, action_id):
-        """Add information of a sequence run to SQLite database
+        """Insert information of a sequence run into SQLite database
         i.e. run_name,machine_name,plate_name,platform,run_mode,
         run_type,num_cycles,quality_format,operator,creation_date,
         description,status
         Args:
             run_info (dictionary): information of a sequence run
+            action_id (int): the id for a program execution
+        Return:
+            package_id for this sequence run
         """
         cur = self.conn.cursor()
        
@@ -128,6 +127,14 @@ class LimsDatabase:
      
       
     def validate_pair(self, all_pair, table_column):
+        """For each pair of information(key, value), 
+        check if the key is one of the column of a table
+        Args: 
+            all_pair: pairs of information
+            table_column: names of the columns in a Sqlite table 
+        Return:
+            A Sqlite INSERT command for valid information
+        """
         column_name = '('
         question = ' VALUES ('
         column_value = []

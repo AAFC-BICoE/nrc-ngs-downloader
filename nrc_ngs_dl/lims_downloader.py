@@ -56,7 +56,7 @@ def main():
     
     config_file = args.config_file
     try: 
-        logger.info('Get configuration settings') 
+        logger.info('Getting the configuration settings') 
         config_setting = ConfigSetting(config_file)
     except IOError:
         logger.error('Cannot open file: %s; Cannot get the configuration settings' % config_file )
@@ -67,7 +67,7 @@ def main():
         try:
             os.makedirs(config_setting.destination_folder)
         except:
-            logger.error('Cannot create the destination folder')
+            logger.error('Cannot create the destination folder %' % config_setting.destination_folder)
             sys.exit(1)
         
     if os.access(config_setting.destination_folder, os.R_OK or os.W_OK) == False:
@@ -83,7 +83,7 @@ def main():
     action_id = lims_database.insert_action_info(action_info)
     #login to LIMS webpage
     try: 
-        logger.info('Log into NRC-LIMS web page ') 
+        logger.info('Logging into NRC-LIMS web page ') 
         web_parser = WebParser(config_setting.login_url,config_setting.runlist_url,config_setting.username,config_setting.password)
     except:
         logger.error('Failed to log in')
@@ -103,7 +103,7 @@ def main():
     #2. in the case of reprocessed data: remove the data and related information in the sqlite database
     #3. in the case of new/reprocessed data: download the data, insert the information of the data into database tables 
     package_downloaded = 0
-    for run_url in run_list[1:3:2]:
+    for run_url in run_list:
         try:
             run_info = web_parser.get_runinfo(run_url)
         except:
@@ -116,11 +116,11 @@ def main():
         for a_lane in lane_list:
             case = lims_database.get_run_case(run_info,a_lane)
             if case == lims_database.RUN_REPROCESSED:
-                logger.info('Delete records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
+                logger.info('Deleting records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 lims_database.delete_old_run(run_info, a_lane)
             
             if case == lims_database.RUN_REPROCESSED or case == lims_database.RUN_NEW:
-                logger.info('Download new/re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
+                logger.info('Downloading new/re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 output_path = os.path.join(config_setting.destination_folder,a_lane['package_name'])
                 time_and_size = web_parser.download_zipfile(a_lane['pack_data_url'],output_path)
                 sequence_run = SequenceRun(a_lane, file_list, config_setting.destination_folder)

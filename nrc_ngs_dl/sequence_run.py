@@ -46,7 +46,7 @@ class SequenceRun:
                 fileIndex = index
             index+=1
         if newname is None:
-            logger.info('cannot find matching name %s' % oldname)
+            #logger.info('cannot find matching name %s' % oldname)
             newname = oldname+'_old_name'    
         return oldname, newname, fileIndex
 
