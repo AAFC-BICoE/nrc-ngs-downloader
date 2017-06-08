@@ -61,7 +61,7 @@ class WebParser:
     
         title_row = table.findAll('tr')[0]
         keys = self.get_text_arow(title_row,'th')
-        print(keys)
+        #print(keys)
         index_link = keys.index(link_column)
         index_status = keys.index(status_column)
         
@@ -242,7 +242,7 @@ class WebParser:
                     totalSize = totalSize + chunkSize
                     chunknumber += 1
                     output.write(chunk)
-                    print(datetime.now(), totalSize)
+                    #print(datetime.now(), totalSize)
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)

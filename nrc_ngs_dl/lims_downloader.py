@@ -3,8 +3,11 @@ import sys
 import logging
 import argparse
 import socket
+import fcntl
 from ConfigParser import SafeConfigParser
 from datetime import datetime
+import pkg_resources
+
 
 from lims_database import LimsDatabase
 from web_parser import WebParser
@@ -26,6 +29,18 @@ def parse_input_args(argv):
     return args
 
 def main():
+    #set up logging
+    set_up_logging()
+    logger = logging.getLogger('nrc_ngs_dl.lims_downloader')
+    #check if there is another instance 
+    pid_file = 'program.pid'
+    fp = open(pid_file,'w')
+    try:
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        logger.error('Another instance is running')
+        sys.exit('Another instance is running')
+        
     # get settings from cinfig.ini.sample file
     time_format = "%a %b %d %H:%M:%S %Y"
     action_info={}
@@ -37,11 +52,8 @@ def main():
     link = ' '
     command_line = link.join(sys.argv)
     action_info['command_line']= command_line
-    action_info['version'] = 1
-    
-    set_up_logging()
-    logger = logging.getLogger('nrc_ngs_dl.lims_downloader')
-
+    action_info['version'] = pkg_resources.get_distribution('NRC-LIMS-dataDownloader').version
+    logger.info('application version %s' % action_info['version'])
     try:
         args = parse_input_args(sys.argv[1:])
     except:
@@ -63,7 +75,7 @@ def main():
         sys.exit(1)
    
     if os.path.exists(config_setting.destination_folder) == False:
-        logger.error('%s not exist' % config_setting.destination_folder)
+        logger.info('folder %s not exist' % config_setting.destination_folder)
         try:
             os.makedirs(config_setting.destination_folder)
         except:
@@ -115,6 +127,8 @@ def main():
       
         for a_lane in lane_list:
             case = lims_database.get_run_case(run_info,a_lane)
+            if case == lims_database.RUN_OLD:
+                logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
             if case == lims_database.RUN_REPROCESSED:
                 logger.info('Deleting records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 lims_database.delete_old_run(run_info, a_lane)
@@ -123,7 +137,7 @@ def main():
                 logger.info('Downloading new/re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 output_path = os.path.join(config_setting.destination_folder,a_lane['package_name'])
                 time_and_size = web_parser.download_zipfile(a_lane['pack_data_url'],output_path)
-                sequence_run = SequenceRun(a_lane, file_list, config_setting.destination_folder)
+                sequence_run = SequenceRun(a_lane, run_info['run_name'], file_list, config_setting.destination_folder)
                 if sequence_run.unzip_package():
                     sequence_run.rename_files()
                     package_downloaded +=1

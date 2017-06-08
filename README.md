@@ -1,5 +1,5 @@
 ========================
-NRC-LIMS-Datadownloader
+NRC-LIMS-dataDownloader
 ========================
 
 
@@ -14,7 +14,7 @@ The list of the tasks performed by the software:
 3. Download each new/re-processed run's data and subsequently unzips the file to obtain demultiplexed fastq files
 4. Renames each fastq file to the submitted sample name from the sequencing run information page.
 5. Generates a SHA256 code for each fastq file and gzips the file
-5. Inserts information about newly downlaoded runs and files into database
+6. Inserts information about newly downlaoded runs and files into database
 
 
 Requirements
@@ -28,19 +28,20 @@ Requirements
 Deployment Procedures
 ---------------------
 
-*Clone the repository
-> git clone https://github.com/aafc-mbb/nrclims-data-downloader
-
-*Create virtual enviroment and install all the dependencies
+*Create and start the virtual enviroment 
  > cd path/to/your/folder
- > make install  
+ > virtualenv -p /path/to/python2.7 venv
+ > source venv/bin/activate
+
+*Install the program and all the dependencies
+ > pip install NRC-LIMS-dataDownloader 
  
 *Copy the sample configuration file _config.ini.sample_ to _config.ini_ and provide the required settings
-> cp config.ini.sample config.ini
-> vim config.ini
+ > cp config.ini.sample config.ini
+ > vim config.ini
  
 *Run the program
- > lims_downloader.py -c config.ini
+ > lims_downloader -c config.ini
 
 
 Deployment Clean up

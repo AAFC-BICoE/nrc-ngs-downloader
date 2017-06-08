@@ -1,20 +1,20 @@
 from setuptools import setup, find_packages
  
 with open('README.md') as f:
-   readme = f.read()
+    readme = f.read()
 
 with open('LICENSE') as f:
-   license = f.read()
+    license = f.read()
 
 with open('requirements.txt') as f:
-   requires = f.read()
+    requires = f.read()
 
 setup(
-    name='NRC_LIMS_dataDownloader',
+    name='NRC-LIMS-dataDownloader',
     description='software for downloading and handling sequence data from NRC-LIMS website',
     long_description=readme,
-    version='1.0',
-    author='Chunfang zheng',
+    version='2.0',
+    author='Chunfang Zheng',
     author_email='chunfang.zheng@canada.ca',
     license=license,
     packages = find_packages(exclude=('test')),
@@ -22,8 +22,6 @@ setup(
     entry_points={
         'console_scripts': [
             'lims_downloader = nrc_ngs_dl.lims_downloader:main',
-            'test_database = test.test_database:main',
-            'test_database_check = test.test_database_new:main',
             ],
     }
 )

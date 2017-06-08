@@ -145,8 +145,8 @@ class LimsDatabase:
                 column_name = column_name+key+','
                 question = question+'?,'
                 column_value.append(value)
-            else:
-                logger.warn('Cannot find %s in database'% key )
+            #else:
+            #    logger.warn('Cannot find %s in database'% key )
         column_name = column_name[:-1]+')' 
         question = question[:-1]+')'
         column_name = column_name + question
@@ -238,7 +238,7 @@ class LimsDatabase:
         cur.execute('SELECT http_content_length FROM data_packages WHERE run_name =? and lane_index = ?', (run_name, lane_index,))
         all_rows = cur.fetchall()
         if len(all_rows) == 1:
-            content_length_old = all_rows[0][0]
+            content_length_old = str(all_rows[0][0])
             if content_length_old == content_length:
                 return self.RUN_OLD  #old data, do nothing
             else:
@@ -246,7 +246,6 @@ class LimsDatabase:
         if len(all_rows) == 0:
             return self.RUN_NEW  # new data, download data and insert info into database
         return self.RUN_OLD    # old data 
-    
     
     def delete_old_run(self,a_run_info, a_lane_info):
         """delete old information related to re-processed sequence run"""
@@ -304,8 +303,8 @@ class LimsDatabase:
     def modify_http_header(self, package_ID, new_value):
         """change the header(content_length), for testing re-processed runs"""
         cur = self.conn.cursor()
-        command_string = 'UPDATE data_packages SET http_header = \''+new_value+'\' WHERE package_ID = ?'
-        cur.execute(command_string, (package_ID,)) 
+        command_string = 'UPDATE data_packages SET http_content_length = ? WHERE package_ID = ?'
+        cur.execute(command_string, (new_value, package_ID,)) 
         self.conn.commit()
         
     def insert_a_value(self,table_name, column_name, column_value,id_name, rowid):

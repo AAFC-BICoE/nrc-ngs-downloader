@@ -8,7 +8,7 @@ from hashlib import sha256
 
 logger  = logging.getLogger('nrc_ngs_dl.sequence_run')
 class SequenceRun:
-    def __init__(self, a_lane, file_info, dest_folder):
+    def __init__(self, a_lane, run_name, file_info, dest_folder):
         """Initialize the object 
         Args:
             a_lane: information of a lane
@@ -18,7 +18,7 @@ class SequenceRun:
         self.data_url = a_lane['pack_data_url']
         self.file_info = file_info
         self.path_source_file = os.path.join(dest_folder,a_lane['package_name'])
-        self.path_destination_folder = os.path.join(dest_folder,a_lane['package_name'].split('.')[0])
+        self.path_destination_folder = os.path.join(dest_folder,run_name)
         if os.path.exists(self.path_destination_folder):
             logger.info('Delete folder for broken/reprocessed data')
             shutil.rmtree(self.path_destination_folder)
@@ -40,9 +40,14 @@ class SequenceRun:
         """Find the correspondent new name for a file"""
         oldname_parts = oldname.split("_")
         index = 0
+        last_part = oldname_parts[-1]
+        if oldname_parts[-1] == 'r1.fastq.gz':
+            last_part = 'R1.fq.gz'
+        if oldname_parts[-1] == 'r2.fastq.gz':
+            last_part = 'R2.fq.gz'
         for a_row in self.file_info:
             if a_row['sample_name']==oldname_parts[0]:
-                newname = a_row['biomaterial']+"_"+oldname_parts[0]+"_"+oldname_parts[-1]
+                newname = a_row['biomaterial']+"_"+oldname_parts[0]+"_"+last_part
                 fileIndex = index
             index+=1
         if newname is None:
@@ -71,10 +76,12 @@ class SequenceRun:
                     a_code = sha256(f.read()).hexdigest();
                     os.rename(oldname, newname)
                     #zip file and sha256
-                
-                    newnamezip = newname+".gz";
-                    with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
-                        f_out.writelines(f_in)
+                    
+                    if not newname.endswith('.gz'):
+                        newname_short = newname_short+'.gz'
+                        newnamezip = newname+".gz";
+                        with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
+                            f_out.writelines(f_in)
                 
                     #if self.file_info[fileIndex] has old name, new name. sha256
                     if 'new_name' in self.file_info[fileIndex]:

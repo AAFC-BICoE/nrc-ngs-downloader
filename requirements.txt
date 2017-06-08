@@ -1,4 +1,8 @@
 BeautifulSoup==3.2.1
 argparse==1.2.1
+pkginfo==1.4.1
 requests==2.13.0
+requests-toolbelt==0.8.0
+tqdm==4.14.0
+twine==1.9.1
 wsgiref==0.1.2

@@ -6,6 +6,8 @@ help:
 	@echo "clean_install - remove virtualenv and artifacts reltated to package install"
 
 install:
+	#pip install (pypi or github.git#egg = NRC-LIMS-dataDownloader)
+	#git clone http://www.github.com/aafc-mbb/NRC-LIMS-dataDownloader.git
 	virtualenv -p /usr/bin/python2.7 venv
 	#source venv/bin/activate
 	venv/bin/pip install nrc_ngs_dl
@@ -37,6 +39,6 @@ test_rename:
 	python test/test_rename.py -c config.ini.sample
 
 run:
-	python apps/lims_downloader.py -c config.ini.sample
+	python nrc_ngs_dl/lims_downloader.py -c config.ini.sample
 	
 	
