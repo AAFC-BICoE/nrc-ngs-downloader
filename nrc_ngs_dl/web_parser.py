@@ -30,7 +30,7 @@ class WebParser:
             }
         session_requests = requests.Session()
         try:
-            session_requests.post(login_url, verify=False, data=login_data)
+            session_requests.post(login_url, data=login_data, verify=False)
         except:
             logger.error('Wrong address of login page %s' % login_url)
             raise
@@ -48,7 +48,7 @@ class WebParser:
         """
         packages = []
         
-        r = self.session_requests.get(self.runlist_url, verify=False)
+        r = self.session_requests.get(self.runlist_url,verify=False)
         if r.url != self.runlist_url:
             logger.error('Failed to login, check your username, password and link to run_list page %s ' % self.runlist_url)
             raise
@@ -87,7 +87,7 @@ class WebParser:
             dictionary of the information
         """
         try:
-            r = self.session_requests.get(run_url, verify=False)
+            r = self.session_requests.get(run_url,verify=False)
         except:
             logger.info('Cannot access the page of sequence run %s ' % (run_url))
             raise

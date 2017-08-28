@@ -34,10 +34,10 @@ Deployment Procedures
  > source venv/bin/activate
 
 *Install the program and all the dependencies
- > pip install NRC-LIMS-dataDownloader 
+ > pip install nrc_ngs_dl 
  
 *Copy the sample configuration file _config.ini.sample_ to _config.ini_ and provide the required settings
- > cp config.ini.sample config.ini
+ > cp venv/bin/config.ini.sample config.ini
  > vim config.ini
  
 *Run the program

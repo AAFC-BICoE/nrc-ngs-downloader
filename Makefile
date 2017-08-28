@@ -10,7 +10,7 @@ install:
 	#git clone http://www.github.com/aafc-mbb/NRC-LIMS-dataDownloader.git
 	virtualenv -p /usr/bin/python2.7 venv
 	#source venv/bin/activate
-	venv/bin/pip install nrc_ngs_dl
+	venv/bin/pip install NRC-LIMS-dataDownloader
 	
 setup_dev:
 	virtualenv -p /usr/bin/python2.7 venv
@@ -30,15 +30,15 @@ clean_pyc:
 	find . -name '__pycache__' -exec rm -fr {} + 
 
 test_database:
-	python test/test_database.py -c config.ini.sample
+	python test/test_database.py -c config.ini
 	
 test_database_check:
-	python test/test_database_check.py -c config.ini.sample
+	python test/test_database_check.py -c config.ini
 	
 test_rename:
-	python test/test_rename.py -c config.ini.sample
+	python test/test_rename.py -c config.ini
 
 run:
-	python nrc_ngs_dl/lims_downloader.py -c config.ini.sample
+	python nrc_ngs_dl/lims_downloader.py -c config.ini
 	
 	
