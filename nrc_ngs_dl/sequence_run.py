@@ -39,7 +39,7 @@ class SequenceRun:
         except:
             if os.path.exists(self.path_destination_folder):
                 shutil.rmtree(self.path_destination_folder)
-            logger.info("An empty .tar/.tar.gz file")
+            logger.info("An empty/incomplete .tar/.tar.gz file")
             os.unlink(self.path_source_file)
             return False
         return True
@@ -67,7 +67,6 @@ class SequenceRun:
         oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
         oldname = os.path.join(a_path, oldname_short)
         newname = os.path.join(self.path_destination_folder, newname_short)
-                
         f = open(oldname, 'rb')
         a_code = sha256(f.read()).hexdigest()
         os.rename(oldname, newname)
@@ -98,55 +97,19 @@ class SequenceRun:
     def rename_files(self):
         """Rename files in a lane with new names"""
         logger.info('Rename files <User defined name>_<Sample name>_(R1/R2).fq.gz')
-        #path_to_old_file = self.path_destination_folder
-        path_to_old_file = []
-	
-        for dirpath, dirname,filename in os.walk(self.path_destination_folder):
-	    for a_file in filename:
-                a_path = os.path.abspath(a_file)    
-                self.rename_a_file(a_file, a_path)
-            for a_dirname in dirname:
-                path_to_old_file.append(os.path.join(dirpath,a_dirname))
         
-        for a_path in path_to_old_file:    
-            for dirpath, dirname,filename in os.walk(a_path):
-                for a_file in filename:
-                    self.rename_a_file(a_file, a_path)
-                    '''
-                    oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
-                    
-                    oldname = os.path.join(a_path, oldname_short)
-                    newname = os.path.join(self.path_destination_folder, newname_short)
-                
-                    f = open(oldname, 'rb')
-                    a_code = sha256(f.read()).hexdigest()
-                    os.rename(oldname, newname)
-                    #zip file and sha256
-                    
-                    if not newname.endswith('.gz'):
-                        newname_short = newname_short+'.gz'
-                        newnamezip = newname+".gz";
-                        with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
-                            f_out.writelines(f_in)
-                        f_zip = open(newnamezip, 'rb')
-                        a_code = sha256(f_zip.read()).hexdigest()
-                
-                    #if self.file_info[fileIndex] has old name, new name. sha256
-                    if 'new_name' in self.file_info[fileIndex]:
-                        new_row = copy.deepcopy(self.file_info[fileIndex])
-                        fileIndex = len(self.file_info)
-                        self.file_info.append(new_row)
-                    
-                    self.file_info[fileIndex]['original_name'] = oldname_short
-                    self.file_info[fileIndex]['new_name'] = newname_short
-                    self.file_info[fileIndex]['folder_name'] = self.path_destination_folder
-                    self.file_info[fileIndex]['SHA256'] = a_code
-                    self.file_info[fileIndex]['file_size'] = os.stat(newname).st_size
-                    if not newname.endswith('.gz'):
-                        os.unlink(newname)
-                    '''
-            if os.path.isdir(a_path):
-                os.rmdir(a_path)
+        for dirpath, dirname,filename in os.walk(self.path_destination_folder):
+            if dirpath.endswith('.failed'):
+                shutil.rmtree(dirpath, ignore_errors=True)
+                logger.info('Remove folder %s )' % (dirpath))
+        
+        for dirpath, dirname,filename in os.walk(self.path_destination_folder):       
+            for a_file in filename:   
+                self.rename_a_file(a_file, dirpath)
+                 
+        for dirpath, dirname,filename in os.walk(self.path_destination_folder):
+            if dirpath != self.path_destination_folder:
+                os.rmdir(dirpath)
 
         
       
