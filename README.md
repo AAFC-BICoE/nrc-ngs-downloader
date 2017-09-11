@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ========================
 ****NRC-LIMS-dataDownloader
 ========================
@@ -69,3 +70,5 @@ include information scrapped from webpage, checksum(SHA256), original name and n
 
 
 
+=======
+>>>>>>> dev
