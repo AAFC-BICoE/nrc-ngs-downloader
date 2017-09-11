@@ -128,51 +128,59 @@ def main():
     #2. in the case of reprocessed data: remove the data and related information in the sqlite database
     #3. in the case of new/reprocessed data: download the data, insert the information of the data into database tables 
     package_downloaded = 0
-    for run_url in run_list:
-        try:
-            run_info = web_parser.get_runinfo(run_url)
+    number_retry = 3
+    while number_retry > 0:
+        logger.info('number of retry %s ' % (number_retry))
+        number_retry -= 1
+        retry_list = []
+        for run_url in run_list:
+            try:
+                run_info = web_parser.get_runinfo(run_url)
               
-        except:
-            logger.info('Cannot get run_info for run_url %s )' % (run_url['run_name']))
-            continue
-        try:
-            lane_list, file_list = web_parser.get_laneinfo(run_url,config_setting.table_file_list, config_setting.column_lane, config_setting.column_file_link)
-        except:
-            logger.info('Cannot get lane_list and file_list for run_name %s)' % (run_info['run_name']))
-            continue
+            except:
+                logger.info('Cannot get run_info for run_url ( %s )' % (run_url))
+                retry_list.append(run_url)
+                continue
+            try:
+                lane_list, file_list = web_parser.get_laneinfo(run_url,config_setting.table_file_list, config_setting.column_lane, config_setting.column_file_link)
+            except:
+                logger.info('Cannot get lane_list and file_list for run_name %s)' % (run_info['run_name']))
+                retry_list.append(run_url)
+                continue
       
-        for a_lane in lane_list:
-            case = lims_database.get_run_case(run_info,a_lane)
-            if case == lims_database.RUN_OLD:
-                logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
-            if case == lims_database.RUN_REPROCESSED:
-                logger.info('Deleting records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
-                lims_database.delete_old_run(run_info, a_lane)
+            for a_lane in lane_list:
+                case = lims_database.get_run_case(run_info,a_lane)
+                if case == lims_database.RUN_OLD:
+                    logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
+                if case == lims_database.RUN_REPROCESSED:
+                    logger.info('Deleting records in database for re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
+                    lims_database.delete_old_run(run_info, a_lane)
             
-            if case == lims_database.RUN_REPROCESSED or case == lims_database.RUN_NEW:
-                logger.info('Downloading new/re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
-                output_path = os.path.join(config_setting.destination_folder,a_lane['package_name'])
-                time_and_size = web_parser.download_zipfile(a_lane['pack_data_url'],output_path)
-                if a_lane['http_content_length'] != time_and_size[2]:
-                    logger.error('downloaded file size %s is different with the http_content_length %s' % (time_and_size[2], a_lane['http_content_length']))
-                    os.unlink(output_path)
-                else:
-                    sequence_run = SequenceRun(a_lane, run_info['run_name'], file_list, config_setting.destination_folder)
-                    if sequence_run.unzip_package(time_and_size[2],a_lane['http_content_length']):
-                        sequence_run.rename_files()
-                        package_downloaded +=1
-                        rowid = lims_database.insert_run_info(run_info,action_id)
-                        lims_database.insert_file_info(rowid,sequence_run.file_info, a_lane['lane_index'])
-                        lims_database.insert_package_info(rowid, time_and_size)
-                        lims_database.insert_lane_info(rowid,run_url,a_lane)
-                        lims_database.update_package_downloaded(package_downloaded, action_id)
+                if case == lims_database.RUN_REPROCESSED or case == lims_database.RUN_NEW:
+                    logger.info('Downloading new/re-processed data (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
+                    output_path = os.path.join(config_setting.destination_folder,a_lane['package_name'])
+                    time_and_size = web_parser.download_zipfile(a_lane['pack_data_url'],output_path)
+                    if a_lane['http_content_length'] != time_and_size[2]:
+                        logger.error('downloaded file size %s is different with the http_content_length %s' % (time_and_size[2], a_lane['http_content_length']))
+                        os.unlink(output_path)
+                        retry_list.append(run_url)
+                    else:
+                        sequence_run = SequenceRun(a_lane, run_info['run_name'], file_list, config_setting.destination_folder)
+                        if sequence_run.unzip_package(time_and_size[2],a_lane['http_content_length']):
+                            sequence_run.rename_files()
+                            package_downloaded +=1
+                            rowid = lims_database.insert_run_info(run_info,action_id)
+                            lims_database.insert_file_info(rowid,sequence_run.file_info, a_lane['lane_index'])
+                            lims_database.insert_package_info(rowid, time_and_size)
+                            lims_database.insert_lane_info(rowid,run_url,a_lane)
+                            lims_database.update_package_downloaded(package_downloaded, action_id)
                       
-                        mapping_file = open(config_setting.mapping_file_name, 'a')
-                        a_string = run_info['run_name']+'\t'+run_info['description']+'\n'
-                        mapping_file.write(a_string)
-                        mapping_file.flush()
-                        mapping_file.close()
-                        
+                            mapping_file = open(config_setting.mapping_file_name, 'a')
+                            a_string = run_info['run_name']+'\t'+run_info['description']+'\n'
+                            mapping_file.write(a_string)
+                            mapping_file.flush()
+                            mapping_file.close()
+        run_list = retry_list               
     end = datetime.now().strftime(time_format)
     lims_database.insert_end_time(action_id, end)
  
