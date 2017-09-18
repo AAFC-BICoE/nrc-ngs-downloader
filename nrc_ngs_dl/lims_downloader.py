@@ -4,18 +4,19 @@ import logging
 import argparse
 import socket
 import fcntl
+import time
 from ConfigParser import SafeConfigParser
 from datetime import datetime
 import pkg_resources
-
 
 from lims_database import LimsDatabase
 from web_parser import WebParser
 from sequence_run import SequenceRun
 
-def set_up_logging(log_file):
-    logger = logging.getLogger('nrc_ngs_dl')
-    logger.setLevel(logging.INFO)
+def set_up_logging(log_file, log_name, log_level):
+    """Set up the log file: path of the file, log_name, log level, format of the message""" 
+    logger = logging.getLogger(log_name)
+    logger.setLevel(int(log_level))
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     try:
         fh = logging.FileHandler(log_file)
@@ -26,11 +27,37 @@ def set_up_logging(log_file):
         raise
 
 def parse_input_args(argv):
+    """Get the command line argument"""
     input_parser = argparse.ArgumentParser()
     input_parser.add_argument('-c', dest='config_file')
     args = input_parser.parse_args(argv)
     return args
 
+def remove_duplicate_mapping(original_file, destination_file):
+    """remove the duplicate items from the mapping file
+    Args:
+        original_file: a file with all the mapping information, includes the duplicate items (mapping.txt.back)
+        destination_file: the path of the mapping file
+    Return:
+        a mapping file without duplicate items (mapping.txt)
+    """
+    all_mapping_file = open(original_file)
+    all_mapping_items = all_mapping_file.read().splitlines()
+    if os.path.exists(destination_file):
+        os.unlink(destination_file)
+    mapping_file = open(destination_file, 'w')
+    all_run_name = []
+    for a_item in all_mapping_items:
+        run_name = a_item.split('\t')[0]
+        all_run_name.append(run_name)
+    for index in range(len(all_mapping_items)):
+        run_name = all_mapping_items[index].split('\t')[0]
+        run_name_left = all_run_name[index+1:]
+        if not run_name in run_name_left:
+            mapping_file.write(all_mapping_items[index]+'\n')
+    mapping_file.flush()
+    mapping_file.close()
+          
 def main():
     #check if there is another instance 
     pid_file = 'program.pid'
@@ -63,22 +90,23 @@ def main():
         sys.exit('Usage: lims_downloader -c /path/to/configuation.ini')
     
     config_file = args.config_file
+    if os.path.exists(config_file) == False:
+        sys.exit('Error: config_file %s not exist' % config_file)
     try: 
         config_setting = ConfigSetting(config_file)
     except IOError:
         sys.exit('Cannot open file:' + config_file +'; Cannot get the configuration settings')
     
-    
     #set up logging
     try:    
-        set_up_logging(config_setting.log_file_name)
+        set_up_logging(config_setting.log_file_name, config_setting.log_name, config_setting.log_level)
     except:
         sys.exit('Cannot locate the log file ' + config_setting.log_file_name)
         
     logger = logging.getLogger('nrc_ngs_dl.lims_downloader')
     
     if os.path.exists(config_setting.destination_folder) == False:
-        logger.info('folder %s not exist' % config_setting.destination_folder)
+        logger.info('folder %s not exist, create the folder' % config_setting.destination_folder)
         try:
             os.makedirs(config_setting.destination_folder)
         except:
@@ -113,43 +141,47 @@ def main():
     try:
         logger.info('Getting run list') 
         run_list = web_parser.get_runlist(config_setting.table_run_list, config_setting.column_run_link, config_setting.column_run_status)
-        #print(run_list)
+        
     except:
         logger.error('Cannot get the list of sequence runs')
         sys.exit(1)
     
-    if not os.path.exists(config_setting.mapping_file_name):
-        mapping_file = open(config_setting.mapping_file_name, 'w')
-        mapping_file.write('run_name\trun_description\n')
-        mapping_file.flush()
-        mapping_file.close()
+    mapping_file_backup = config_setting.mapping_file_name+'.backup'
+    if not os.path.exists(mapping_file_backup):
+        mapping_backup = open(mapping_file_backup, 'w')
+        mapping_backup.write('run_name\trun_description\n')
+        mapping_backup.flush()
+        mapping_backup.close()
+        
     #for each sequence run in the list,
     #1. check if it is a new data or re-processed data
     #2. in the case of reprocessed data: remove the data and related information in the sqlite database
     #3. in the case of new/reprocessed data: download the data, insert the information of the data into database tables 
     package_downloaded = 0
-    number_retry = 3
-    while number_retry > 0:
-        logger.info('number of retry %s ' % (number_retry))
-        number_retry -= 1
+    number_tries = int(config_setting.number_retries)+1
+    while number_tries > 0:
+        logger.info('==== number of tries: %s ' % (int(config_setting.number_retries)+2- number_tries))
+        number_tries -= 1
         retry_list = []
-        for run_url in run_list:
+        for run_url in run_list[29:]:
             try:
                 run_info = web_parser.get_runinfo(run_url)
-              
             except:
-                logger.info('Cannot get run_info for run_url ( %s )' % (run_url))
+                logger.warn('Cannot get run_info for run_url ( %s )' % (run_url))
                 retry_list.append(run_url)
                 continue
             try:
                 lane_list, file_list = web_parser.get_laneinfo(run_url,config_setting.table_file_list, config_setting.column_lane, config_setting.column_file_link)
             except:
-                logger.info('Cannot get lane_list and file_list for run_name %s)' % (run_info['run_name']))
+                logger.warn('Cannot get lane_list and file_list for run_name %s)' % (run_info['run_name']))
                 retry_list.append(run_url)
                 continue
       
             for a_lane in lane_list:
                 case = lims_database.get_run_case(run_info,a_lane)
+                if a_lane['http_content_length'] > 10700000000:
+                    logger.warn('Data > 10GB, skipped by the program')
+                    continue
                 if case == lims_database.RUN_OLD:
                     logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 if case == lims_database.RUN_REPROCESSED:
@@ -161,7 +193,7 @@ def main():
                     output_path = os.path.join(config_setting.destination_folder,a_lane['package_name'])
                     time_and_size = web_parser.download_zipfile(a_lane['pack_data_url'],output_path)
                     if a_lane['http_content_length'] != time_and_size[2]:
-                        logger.error('downloaded file size %s is different with the http_content_length %s' % (time_and_size[2], a_lane['http_content_length']))
+                        logger.warn('Downloaded file size %s is different with the http_content_length %s' % (time_and_size[2], a_lane['http_content_length']))
                         os.unlink(output_path)
                         retry_list.append(run_url)
                     else:
@@ -169,18 +201,22 @@ def main():
                         if sequence_run.unzip_package(time_and_size[2],a_lane['http_content_length']):
                             sequence_run.rename_files()
                             package_downloaded +=1
+                            
+                            mapping_backup = open(mapping_file_backup,'a')
+                            a_string = run_info['run_name']+'\t'+run_info['description']+'\n'
+                            mapping_backup.write(a_string)
+                            mapping_backup.flush()
+                            mapping_backup.close()
+                            
                             rowid = lims_database.insert_run_info(run_info,action_id)
                             lims_database.insert_file_info(rowid,sequence_run.file_info, a_lane['lane_index'])
                             lims_database.insert_package_info(rowid, time_and_size)
                             lims_database.insert_lane_info(rowid,run_url,a_lane)
                             lims_database.update_package_downloaded(package_downloaded, action_id)
-                      
-                            mapping_file = open(config_setting.mapping_file_name, 'a')
-                            a_string = run_info['run_name']+'\t'+run_info['description']+'\n'
-                            mapping_file.write(a_string)
-                            mapping_file.flush()
-                            mapping_file.close()
-        run_list = retry_list               
+        run_list = retry_list
+        time.sleep(float(config_setting.timeout_retries)) 
+           
+    remove_duplicate_mapping(mapping_file_backup, config_setting.mapping_file_name)  
     end = datetime.now().strftime(time_format)
     lims_database.insert_end_time(action_id, end)
  
@@ -203,8 +239,12 @@ class ConfigSetting():
         self.table_file_list = config_parser.get('file_list_setting','table')
         self.column_file_link = config_parser.get('file_list_setting','column_link')
         self.column_lane = config_parser.get('file_list_setting','column_lane')
-        self.log_file_name = config_parser.get('log_file_name','name')
+        self.log_file_name = config_parser.get('log','file_name')
+        self.log_name = config_parser.get('log','log_name')
+        self.log_level = config_parser.get('log','log_level')
         self.mapping_file_name = config_parser.get('mapping_file_name','name')
+        self.number_retries = config_parser.get('retry_setting','number_retries')
+        self.timeout_retries = config_parser.get('retry_setting','timeout')
           
 if __name__ == '__main__':
     main()

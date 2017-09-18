@@ -1,11 +1,8 @@
-#import requests
 import os
-#import sys
 import logging
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
 
-from datetime import datetime
 from datetime import date
 import time
 from BeautifulSoup import BeautifulSoup
@@ -61,7 +58,6 @@ class WebParser:
     
         title_row = table.findAll('tr')[0]
         keys = self.get_text_arow(title_row,'th')
-        #print(keys)
         index_link = keys.index(link_column)
         index_status = keys.index(status_column)
         
@@ -73,8 +69,8 @@ class WebParser:
                 packages.append(run_link_here)
        
         reverse_list = list(reversed(packages))
-        return reverse_list  
-        #return packages 
+        logger.debug('The list of all runs: %s' % reverse_list)
+        return reverse_list   
     
     def get_runinfo(self, run_url):
         """Parse information of a sequence run
@@ -89,14 +85,14 @@ class WebParser:
         try:
             r = self.session_requests.get(run_url,verify=False)
         except:
-            logger.info('Cannot access the page of sequence run %s ' % (run_url))
+            logger.warn('Cannot access the page of sequence run %s ' % (run_url))
             raise
         soup = BeautifulSoup(r.content)
         run_info = {}
         try:
             table = soup.find('table', {'class':'label_value'})
         except:
-            logger.info('Cannot find the run info table')
+            logger.warn('Cannot find the run info table')
             raise
             
         for a_row in table.findAll('tr'):
@@ -111,6 +107,7 @@ class WebParser:
             link = '_'
             column_name = link.join(column_name_part)[:-1]
             run_info[column_name] = column_value
+        logger.debug("run_url %s and run_info %s" % (run_url, run_info))
         return run_info
         
     def get_laneinfo(self, run_url, table_id, column_lane, column_link):
@@ -128,13 +125,13 @@ class WebParser:
         try:
             r = self.session_requests.get(run_url, verify=False)
         except:
-            logger.info('Cannot access the page of sequence run %s ' % (run_url))
+            logger.warn('Cannot access the page of sequence run %s ' % (run_url))
             raise
         soup = BeautifulSoup(r.content)
         try:
             table = self.get_table(soup, table_id)
         except:
-            logger.info('Cannot find the table %' % (table_id))
+            logger.warn('Cannot find the table %' % (table_id))
             raise
         title_row = table.findAll('tr')[0]
         keys = self.get_text_arow(title_row,'th')
@@ -164,9 +161,11 @@ class WebParser:
                 a_lane['package_name'] = download_file_url.string.strip();
                 a_lane['pack_data_url'] = download_file_url.get('href')
                 
-                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True)
+                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True, verify=False)
+                logger.debug('all_headers %s' % (all_headers.headers))
                 if all_headers.status_code != 200:
                     logger.warn('Wrong headers %s' % (a_lane['pack_data_url']))
+                    raise
                 a_lane['http_content_length'] = all_headers.headers['content-length'] 
                 lane_list.append(a_lane)
             else:
@@ -242,7 +241,6 @@ class WebParser:
                     totalSize = totalSize + chunkSize
                     chunknumber += 1
                     output.write(chunk)
-                    #print(datetime.now(), totalSize)
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)

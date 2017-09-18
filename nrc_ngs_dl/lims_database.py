@@ -18,7 +18,7 @@ class LimsDatabase:
             try:
                 conn = sqlite3.connect(db_name)
             except:
-                logger.info('Cannot access the database %s' %(db_name))
+                logger.error('Cannot access the database %s' %(db_name))
                 raise 
             c = conn.cursor()
             c.execute('''CREATE TABLE data_packages (
@@ -61,7 +61,7 @@ class LimsDatabase:
             try:
                 conn = sqlite3.connect(db_name)
             except:
-                logger.info('Cannot access the database %s' % (db_name))
+                logger.error('Cannot access the database %s' % (db_name))
                 raise
             
         self.conn = conn
@@ -81,6 +81,7 @@ class LimsDatabase:
         cur.execute(command_str, column_value)
         rowid = self.get_last_row_id('application_action','action_id')
         self.conn.commit()
+        logger.debug('insert_action_info command %s %s' % (command_str, column_value) )
         return rowid
 
     
@@ -90,14 +91,15 @@ class LimsDatabase:
         command_str = 'UPDATE application_action SET end_time ="'\
                        + end_time + '" WHERE action_id = ?'              
         cur.execute(command_str,(action_id,))
+        logger.debug('insert_end_time command %s %s' % (command_str, action_id) )
         self.conn.commit() 
         
     def update_package_downloaded(self, package_downloaded, action_id):
         """Update the number of packages that downloaded by this program execution"""
         cur = self.conn.cursor()
         command_str = 'UPDATE application_action SET package_downloaded = ?  WHERE action_id = ?'              
-        
         cur.execute(command_str,(package_downloaded, action_id,))
+        logger.debug('update_package_downloaded command %s %s %s' % (command_str, package_downloaded, action_id) )
         self.conn.commit() 
         
     def insert_run_info(self, run_info, action_id):
@@ -123,6 +125,7 @@ class LimsDatabase:
         cur.execute(command_str, column_value)
         rowid = self.get_last_row_id('data_packages','package_id')
         self.conn.commit()
+        logger.debug('insert_run_info command %s %s' % (command_str, column_value) )
         return rowid
      
       
@@ -208,9 +211,10 @@ class LimsDatabase:
         self.conn.commit()
    
    
-    def get_last_row_id(self,table_name, id):
+    def get_last_row_id(self,table_name, aid):
+        """get previous row id"""
         cur = self.conn.cursor()
-        command_string = 'SELECT max('+id+') FROM '+table_name
+        command_string = 'SELECT max('+aid+') FROM '+table_name
         cur.execute(command_string)
         max_id = cur.fetchone()[0]
         if max_id is None:
@@ -262,53 +266,4 @@ class LimsDatabase:
             logger.error('Cannot find information of re-processed data')
         if len(all_rows) > 1:
             logger.error('duplicate information of re-processed data')
-     
-     
-    ##############all the methods below can be removed###############
-    #methods to print out tables in SQLite database    
-    def check_dp_table(self):
-        """print out all rows in data_package table"""
-        cur = self.conn.cursor()
-        cur.execute('SELECT * FROM data_packages')
-        all_rows = cur.fetchall()
-        for a_row in all_rows:
-            print(a_row)
-    
-    def check_df_table(self):
-        """print out all rows in data_file table"""
-        cur = self.conn.cursor()
-        cur.execute('SELECT * FROM data_files')
-        all_rows = cur.fetchall()
-        for a_row in all_rows[-10:-1]:
-            print(a_row)
-                   
-    #some methods to modify the database, 
-    #only useful for testing the method: check_new_run
-    def delete_last_run(self):
-        """delete last row in table data_package"""
-        cur = self.conn.cursor()
-        rowid = self.get_last_row_id('data_packages','package_id')
-        print(rowid)
-        cur.execute('DELETE FROM data_packages WHERE package_id = ?', (rowid,))
-        cur.execute('DELETE FROM data_files WHERE package_id =?',(rowid,))
-        self.conn.commit()
-    
-    def delete_a_run(self, rowid):
-        """delete a sequence run with the row_id, if it exists"""
-        cur = self.conn.cursor()
-        cur.execute('DELETE FROM data_packages WHERE package_id = ?', (rowid,))
-        cur.execute('DELETE FROM data_files WHERE package_id =?',(rowid,))
-        self.conn.commit()
-    
-    def modify_http_header(self, package_ID, new_value):
-        """change the header(content_length), for testing re-processed runs"""
-        cur = self.conn.cursor()
-        command_string = 'UPDATE data_packages SET http_content_length = ? WHERE package_ID = ?'
-        cur.execute(command_string, (new_value, package_ID,)) 
-        self.conn.commit()
-        
-    def insert_a_value(self,table_name, column_name, column_value,id_name, rowid):
-        cur = self.conn.cursor()
-        if self.has_column(table_name, column_name):
-            command_string = 'UPDATE '+table_name+' SET ' + column_name + ' = \''+ column_value +'\' WHERE '+id_name +'= ?'
-            cur.execute(command_string, (rowid,))   
+

@@ -27,7 +27,7 @@ class SequenceRun:
     def unzip_package(self, fileSize, http_content_length):
         """Unzip a .tar or .tar.gz file"""
         if http_content_length != fileSize:
-            logger.error('downloaded file size %s is different with the http_content_length %s' % (fileSize, http_content_length))
+            logger.warn('downloaded file size %s is different with the http_content_length %s' % (fileSize, http_content_length))
             os.unlink(self.path_source_file)
             return False
         try:
@@ -39,13 +39,13 @@ class SequenceRun:
         except:
             if os.path.exists(self.path_destination_folder):
                 shutil.rmtree(self.path_destination_folder)
-            logger.info("An empty/incomplete .tar/.tar.gz file")
+            logger.warn("An empty/incomplete .tar/.tar.gz file")
             os.unlink(self.path_source_file)
             return False
         return True
 
     def name_mapping(self,oldname):
-        """Find the correspondent new name for a file"""
+        """Find the correspondent new name for a file by searching the list of file information"""
         oldname_parts = oldname.split("_")
         index = 0
         last_part = oldname_parts[-1]
@@ -59,11 +59,13 @@ class SequenceRun:
                 fileIndex = index
             index+=1
         if newname is None:
-            #logger.info('cannot find matching name %s' % oldname)
-            newname = oldname+'_old_name'    
+            logger.warn('cannot find matching name %s' % oldname)
+            newname = oldname+'_old_name'   
+        logger.debug('old_name %s and new_name %s' % (oldname, newname)) 
         return oldname, newname, fileIndex
 
     def rename_a_file(self, a_file, a_path):
+        """Rename a file in a lane with a new name"""
         oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
         oldname = os.path.join(a_path, oldname_short)
         newname = os.path.join(self.path_destination_folder, newname_short)
