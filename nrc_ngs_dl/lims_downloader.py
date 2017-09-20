@@ -163,7 +163,7 @@ def main():
         logger.info('==== number of tries: %s ' % (int(config_setting.number_retries)+2- number_tries))
         number_tries -= 1
         retry_list = []
-        for run_url in run_list[29:]:
+        for run_url in run_list:
             try:
                 run_info = web_parser.get_runinfo(run_url)
             except:
@@ -178,10 +178,10 @@ def main():
                 continue
       
             for a_lane in lane_list:
-                case = lims_database.get_run_case(run_info,a_lane)
-                if a_lane['http_content_length'] > 10700000000:
-                    logger.warn('Data > 10GB, skipped by the program')
+                if int(a_lane['http_content_length']) > 10700000000:
+                    logger.warn('Data size %s > 10GB, skip the data' % (a_lane['http_content_length']))
                     continue
+                case = lims_database.get_run_case(run_info,a_lane)
                 if case == lims_database.RUN_OLD:
                     logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
                 if case == lims_database.RUN_REPROCESSED:

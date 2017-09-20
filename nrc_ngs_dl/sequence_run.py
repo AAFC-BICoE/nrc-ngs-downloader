@@ -49,6 +49,8 @@ class SequenceRun:
         oldname_parts = oldname.split("_")
         index = 0
         last_part = oldname_parts[-1]
+        newname = ''
+        fileIndex = -1
         if oldname_parts[-1] == 'r1.fastq.gz':
             last_part = 'R1.fq.gz'
         if oldname_parts[-1] == 'r2.fastq.gz':
@@ -58,7 +60,7 @@ class SequenceRun:
                 newname = a_row['biomaterial']+"_"+oldname_parts[0]+"_"+last_part
                 fileIndex = index
             index+=1
-        if newname is None:
+        if newname == '':
             logger.warn('cannot find matching name %s' % oldname)
             newname = oldname+'_old_name'   
         logger.debug('old_name %s and new_name %s' % (oldname, newname)) 
