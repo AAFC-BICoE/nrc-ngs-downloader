@@ -177,6 +177,11 @@ class WebParser:
                     for index in range(len(new_keys)):
                         a_file[new_keys[index]] = text_all_cell[index]
                     a_file['lane_index'] = lane_index_now
+                    old_biomaterial = a_file['biomaterial']
+                    new_biomaterial = old_biomaterial.replace(' ','')
+                    if len(old_biomaterial) != len(new_biomaterial):
+                        logging.warn('Whitespace(s) in user defined name %s' % (old_biomaterial))
+                        a_file['biomaterial'] = new_biomaterial
                 file_list.append(a_file)
                 
         return lane_list, file_list

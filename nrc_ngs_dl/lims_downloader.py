@@ -176,8 +176,12 @@ def main():
                 logger.warn('Cannot get lane_list and file_list for run_name %s)' % (run_info['run_name']))
                 retry_list.append(run_url)
                 continue
-      
+            
+            multiple_lane = len(lane_list)
             for a_lane in lane_list:
+                folder_name = run_info['run_name']
+                if multiple_lane > 1:
+                    folder_name = run_info['run_name']+'_lane'+str(a_lane['lane_index'])
                 if int(a_lane['http_content_length']) > 10700000000:
                     logger.warn('Data size %s > 10GB, skip the data' % (a_lane['http_content_length']))
                     continue
@@ -197,7 +201,7 @@ def main():
                         os.unlink(output_path)
                         retry_list.append(run_url)
                     else:
-                        sequence_run = SequenceRun(a_lane, run_info['run_name'], file_list, config_setting.destination_folder)
+                        sequence_run = SequenceRun(a_lane, folder_name, file_list, config_setting.destination_folder)
                         if sequence_run.unzip_package(time_and_size[2],a_lane['http_content_length']):
                             sequence_run.rename_files()
                             package_downloaded +=1
@@ -214,6 +218,7 @@ def main():
                             lims_database.insert_lane_info(rowid,run_url,a_lane)
                             lims_database.update_package_downloaded(package_downloaded, action_id)
         run_list = retry_list
+        logger.debug('retry list %s ' % (run_list))
         time.sleep(float(config_setting.timeout_retries)) 
            
     remove_duplicate_mapping(mapping_file_backup, config_setting.mapping_file_name)  

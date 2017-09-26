@@ -13,7 +13,7 @@ setup(
     name='nrc_ngs_dl',
     description='software for downloading and handling sequence data from NRC-LIMS website',
     long_description=readme,
-    version='1.5',
+    version='1.6',
     author='Chunfang Zheng',
     author_email='chunfang.zheng@canada.ca',
     license=license,
