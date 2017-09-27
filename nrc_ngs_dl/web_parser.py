@@ -6,7 +6,7 @@ requests.packages.urllib3.disable_warnings()
 from datetime import date
 import time
 from BeautifulSoup import BeautifulSoup
-
+import math
 
 logger  = logging.getLogger('nrc_ngs_dl.web_parser')
 
@@ -171,7 +171,7 @@ class WebParser:
             else:
                 
                 if len(new_keys) != len(text_all_cell):
-                    logging.warn('Different length in title and content of a table')
+                    logger.warn('Different length in title and content of a table')
                 else:
                     a_file ={}
                     for index in range(len(new_keys)):
@@ -180,7 +180,7 @@ class WebParser:
                     old_biomaterial = a_file['biomaterial']
                     new_biomaterial = old_biomaterial.replace(' ','')
                     if len(old_biomaterial) != len(new_biomaterial):
-                        logging.warn('Whitespace(s) in user defined name %s' % (old_biomaterial))
+                        logger.warn('Whitespace(s) in user defined name %s' % (old_biomaterial))
                         a_file['biomaterial'] = new_biomaterial
                 file_list.append(a_file)
                 
@@ -239,18 +239,49 @@ class WebParser:
         chunkSize = 1024 * 512
         totalSize = 0
         res = self.session_requests.get(url, stream=True, verify=False)
-        with open(file_path, 'wb') as output:
-            chunknumber = 0
-            for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
-                if chunk:
-                    totalSize = totalSize + chunkSize
-                    chunknumber += 1
-                    output.write(chunk)
+        whole_file_size = int(res.headers['content-length'])
+    #print(res.headers['content-length'], real_file_size)
+        limit_10G = int(10*math.pow(1024,3))
+        if whole_file_size < limit_10G:
+            with open(file_path, 'wb') as output:
+                chunknumber = 0
+                for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
+                    if chunk:
+                        totalSize = totalSize + chunkSize
+                        chunknumber += 1
+                        output.write(chunk)
+            
+        else:
+            logger.info('HiSeq file ')
+            url_xs = url.replace('lane.fastq', 'lane_xs.fastq')
+            resume_number = whole_file_size/limit_10G +1
+            file_size =0
+            option_for_write = 'wb'
+            while resume_number >0 and file_size < whole_file_size:
+                resume_number-=1
+                resume_header = {'Range': 'bytes=%d-' % file_size}
+                res = self.session_requests.get(url_xs, headers=resume_header,stream = True, verify = False, allow_redirects = True)
+                with open(file_path, option_for_write) as output:
+                    #chunknumber = 0
+                    for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
+                        if chunk:
+                            #totalSize = totalSize + chunkSize
+                            #chunknumber += 1
+                            output.write(chunk)
+                            #output.flush()
+                            #os.fsync(output.fileno())
+                option_for_write = 'ab'
+                time.sleep(20)
+                file_size = os.stat(file_path).st_size
+                logger.info('file size now %s' % (file_size))
+                res.close()
+                #print('filesize now', file_size)
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)
         fileSize = os.stat(file_path).st_size
         time_and_size.append(str(fileSize))
+           
         return time_and_size
         
         

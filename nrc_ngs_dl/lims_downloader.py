@@ -182,9 +182,9 @@ def main():
                 folder_name = run_info['run_name']
                 if multiple_lane > 1:
                     folder_name = run_info['run_name']+'_lane'+str(a_lane['lane_index'])
-                if int(a_lane['http_content_length']) > 10700000000:
-                    logger.warn('Data size %s > 10GB, skip the data' % (a_lane['http_content_length']))
-                    continue
+                #if int(a_lane['http_content_length']) > 10700000000:
+                #   logger.warn('Data size %s > 10GB, skip the data' % (a_lane['http_content_length']))
+                #   continue
                 case = lims_database.get_run_case(run_info,a_lane)
                 if case == lims_database.RUN_OLD:
                     logger.info('Data already downloaded (run_name %s, lane_index %s)' % (run_info['run_name'],a_lane['lane_index']))
