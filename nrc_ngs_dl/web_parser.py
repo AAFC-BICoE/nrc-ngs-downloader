@@ -253,7 +253,8 @@ class WebParser:
             
         else:
             logger.info('HiSeq file ')
-            url_xs = url.replace('lane.fastq', 'lane_xs.fastq')
+            #url_xs = url.replace('lane.fastq', 'lane_xs.fastq')
+            url_xs = url
             resume_number = whole_file_size/limit_10G +1
             file_size =0
             option_for_write = 'wb'

@@ -68,6 +68,7 @@ class SequenceRun:
 
     def rename_a_file(self, a_file, a_path):
         """Rename a file in a lane with a new name"""
+    
         oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
         oldname = os.path.join(a_path, oldname_short)
         newname = os.path.join(self.path_destination_folder, newname_short)
@@ -108,9 +109,17 @@ class SequenceRun:
                 logger.info('Remove folder %s )' % (dirpath))
         
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):       
-            for a_file in filename:   
+            for a_file in filename:
                 self.rename_a_file(a_file, dirpath)
-                 
+                '''
+                #check if the file is a sequence file or not
+                if a_file.str.contains('.fq|.fastq|.fasta|.fna|.ffn|.faa|.frn'):
+                    self.rename_a_file(a_file, dirpath)
+                else:
+                    non_sequence_file = os.path.join(dirpath, a_file)
+                    os.unlink(a_file)
+                    logger.warn('Remove a non-sequence file %s' % (a_file))
+                '''
         for dirpath, dirname,filename in os.walk(self.path_destination_folder):
             if dirpath != self.path_destination_folder:
                 os.rmdir(dirpath)
