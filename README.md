@@ -24,9 +24,9 @@ The list of the tasks performed by the software:
 ## Deployment Procedures
 
 * Create and start the virtual enviroment 
- > cd path/to/your/folder
- > virtualenv -p /path/to/python2.7 venv
- > source venv/bin/activate
+ > cd path/to/your/folder  
+ > virtualenv -p /path/to/python2.7 venv  
+ > source venv/bin/activate  
 
 * Install the program and all the dependencies
  > pip install nrc_ngs_dl 
