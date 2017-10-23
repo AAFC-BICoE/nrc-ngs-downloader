@@ -1,0 +1,47 @@
+[sqlite_database]
+# Path and name of the database file
+name = /path/to/sqlite/file.sqlite
+
+[output]
+# Path and name of the destination folder for all the fastq files 
+path = /path/to/destination/folder/
+file_mode = 640
+folder_mode = 750
+
+[log]
+# Path and name of the log file
+file_name = /path/to/ngs_dl.log
+log_name = nrc_ngs_dl
+#Numeric value for each level:
+#CRITICAL:50  ERROR:40  WARNING:30 INFO:20 DEBUG:10 NOTSET:0
+log_level = 20
+
+[mapping_file_name]
+#Mapping between run_name and run_description
+name = /path/to/mapping.txt
+
+[retry_setting]
+number_retries = 3
+#sleep time between two tries
+timeout = 30
+
+[nrc_lims]
+# Link to the login page of NRC-LIMS site
+login_url = https://lims.bioinfo.nrc.ca/login.html
+# Link to the page with the list of all sequence runs
+runlist_url = https://lims.bioinfo.nrc.ca/lims/show_runs.html
+username = your_user_name
+password = your_password
+
+[run_list_setting]
+table = div id runs_table
+column_link = Run Name
+column_status = Status
+
+
+[file_list_setting]
+table = div id run_layout
+column_link = Download
+column_lane = Lane
+
+
