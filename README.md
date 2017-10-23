@@ -43,14 +43,23 @@ The list of the tasks performed by the software:
 
 ## Set up the HCRON service
 
-* Get the permission to access hcron1.science.gc.ca
- by opening an IT centre ticket with message:
+* Get the permission to access hcron1.science.gc.ca by opening an IT centre ticket with message:
     > HPC Dorval - Supercomputing - DC000131  
     > Please register my account   chz001   to use hcron on:  
     > hcron1.science.gc.ca  
 
 * Setup Passwordless Login
- 
+    > https://portal.science.gc.ca/confluence/display/SCIDOCS/SSH+Login+without+a+Password    
+    > mkdir -p ~/.ssh  
+    > chmod -R 700 ~/.ssh    
+    > cd ~/.ssh  
+    > ssh-keygen -q -t rsa  
+    > cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_key  
+    or
+    > scp ~/.ssh/id_rsa.pub <destination username>@<hostname>:~  
+    > ssh <destination username>@<hostname>  
+    > cat ~/id_rsa.pub >> ~/.ssh/authorized_keys  
+    > rm -rf ~/id_rsa.pu  
 
 * Create the home for your hcron events:
     > bash-4.1$ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
@@ -91,7 +100,6 @@ The list of the tasks performed by the software:
 
 * Connect to hcron server
     > bash-4.1$ ssh hcron1.science.gc.ca
-
 
 * Load your hcron events
     > chz001@hcron1: hcron-reload
