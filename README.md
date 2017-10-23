@@ -50,15 +50,14 @@ The list of the tasks performed by the software:
     > hcron1.science.gc.ca  
 
 * Setup Passwordless Login
- zhengc@onottra670241V:~$ ssh gpsc-in-gccloud.science.gc.ca date
- Fri Sep  8 18:01:17 GMT 2017
+ 
 
 * Create the home for your hcron events:
-    > $ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
+    > bash-4.1$ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
 
 * Create a hcron event file (file downloader as an example) :
-    > cd ~/.hcron/hcron1.science.gc.ca/events  
-    > hcron-event downloader  
+    > bash-4.1$ cd ~/.hcron/hcron1.science.gc.ca/events  
+    > bash-4.1$ hcron-event downloader  
 
 * Configure the event file to run the program nightly (file downloader as an example):
     > bash-4.1$ cat ~/.hcron/hcron1.science.gc.ca/events/downloader   
@@ -85,28 +84,28 @@ The list of the tasks performed by the software:
     > echo "end at `date`" >> $HOME/check_step 
 
 * Getting Your Environment Right
-    > from https://expl.info/display/HCRON/Getting+Your+Environment+Right  
-    > "The brute force way is to run a shell as a login shell, which will provide an environment almost equivalent to an interactive session" 
-    > command=bash -l -c "<commands here>" 
-    > note: from my test, the trick works for host=142.135.29.204, but not for host=gpsc-in.science.gc.ca
+    > from https://expl.info/display/HCRON/Getting+Your+Environment+Right    
+    > "The brute force way is to run a shell as a login shell, which will provide an environment almost equivalent to an interactive session"   
+    > command=bash -l -c "<commands here>"   
+    > note: from my test, the trick works for host=142.135.29.204, but not for host=gpsc-in.science.gc.ca  
 
 * Connect to hcron server
     > bash-4.1$ ssh hcron1.science.gc.ca
 
 
 * Load your hcron events
- > chz001@hcron1: hcron-reload
+    > chz001@hcron1: hcron-reload
 
 
 ## SQLite database
 
 Three tables are maintained in this database. Tables will be updated when the program is run.
 
-1.data_packages: to keep all the information about each sequence run
+1. data_packages: to keep all the information about each sequence run
  (run-name,....)
-2.data_files: to keep all the information about each sequence file, 
+2. data_files: to keep all the information about each sequence file, 
 include information scrapped from webpage, checksum(SHA256), original name and new name of the file, etc. 
-3.program_action: to keep all the information of every time the application is run,
+3. program_action: to keep all the information of every time the application is run,
   like failures, successes, urls scraped/attempted, timestamps, sequence runs downloaded. 
 
 
