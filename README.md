@@ -1,11 +1,7 @@
-<<<<<<< HEAD
-========================
-****NRC-LIMS-dataDownloader
-========================
+# NRC-LIMS-dataDownloader
 
 
-Description
------------
+## Description
 
 NRC-LIMS-Datadownloader is a software written in Python. This software explores the NRC-LIMS website, downloads all the sequence files, and keeps the meta data of all the sequences in a sqlite database.
 
@@ -18,59 +14,56 @@ The list of the tasks performed by the software:
 6. Inserts information about newly downlaoded runs and files into database
 
 
-Requirements
-------------
+## Requirements
 
-*Python 2.7
-*VirtualEnv
-*GNU Make
+* Python 2.7
+* VirtualEnv
+* GNU Make
 
 
-Deployment Procedures
----------------------
+## Deployment Procedures
 
-*Create and start the virtual enviroment 
+* Create and start the virtual enviroment 
  > cd path/to/your/folder
  > virtualenv -p /path/to/python2.7 venv
  > source venv/bin/activate
 
-*Install the program and all the dependencies
+* Install the program and all the dependencies
  > pip install nrc_ngs_dl 
  
-*Copy the sample configuration file _config.ini.sample_ to _config.ini_ and provide the required settings
+* Copy the sample configuration file _config.ini.sample_ to _config.ini_ and provide the required settings
  > cp venv/bin/config.ini.sample config.ini
  > vim config.ini
  
-*Run the program
+* Run the program
  > cd path/to/your/folder
  > source venv/bin/activate
  > lims_downloader -c config.ini
 
 
-Set up the HCRON service
-------------------------
+## Set up the HCRON service
 
-*Get the permission to access hcron1.science.gc.ca
+* Get the permission to access hcron1.science.gc.ca
  by opening an IT centre ticket with message:
  > HPC Dorval - Supercomputing - DC000131
  > Please register my account   chz001   to use hcron on:
  > hcron1.science.gc.ca
 
-*Setup Passwordless Login
+* Setup Passwordless Login
  zhengc@onottra670241V:~$ ssh gpsc-in-gccloud.science.gc.ca date
  Fri Sep  8 18:01:17 GMT 2017
 
-•Create the home for your hcron events:
+* Create the home for your hcron events:
 $ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
 
-•Create a hcron event file (file downloader as an example) :
+* Create a hcron event file (file downloader as an example) :
  > cd ~/.hcron/hcron1.science.gc.ca/events
  > hcron-event downloader
 
-•Configure the event file to run the program nightly (file downloader as an example):
- > bash-4.1$ cat ~/.hcron/hcron1.science.gc.ca/events/downloader 
- > as_user=
- > host=142.135.29.204
+* Configure the event file to run the program nightly (file downloader as an example):
+```bash-4.1$ cat ~/.hcron/hcron1.science.gc.ca/events/downloader 
+ as_user=
+ host=142.135.29.204
  > command=bash -l -c /space/project/grdi/eco/groups/mbb/chz001/dataDownloader/hcron_command.sh
  > notify_email=chunfang.zheng@canada.ca
  > notify_message=message from hcron
@@ -81,44 +74,32 @@ $ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
  > when_dow=*
  > template_name=
  > bash-4.1$ 
-
-•Command file(hcron_command.sh)
- > bash-4.1$ cat /space/project/grdi/eco/groups/mbb/chz001/dataDownloader/hcron_command.sh 
+```
+* Command file(hcron_command.sh)
+ ```bash-4.1$ cat /space/project/grdi/eco/groups/mbb/chz001/dataDownloader/hcron_command.sh 
  > #!/bin/bash
  > echo "start at `date`" >> $HOME/check_step
  > cd /space/project/grdi/eco/groups/mbb/chz001/dataDownloader
  > source venv/bin/activate
  > lims_downloader -c config.ini
  > echo "end at `date`" >> $HOME/check_step 
+```
 
-•Getting Your Environment Right
+* Getting Your Environment Right
  > from https://expl.info/display/HCRON/Getting+Your+Environment+Right
  > "The brute force way is to run a shell as a login shell, which will provide an environment almost equivalent to an interactive session" 
  > command=bash -l -c "<commands here>" 
  > note: from my test, the trick works for host=142.135.29.204, but not for host=gpsc-in.science.gc.ca
 
-•Connect to hcron server
- > bash-4.1$ ssh hcron1.science.gc.ca
+* Connect to hcron server
+```bash-4.1$ ssh hcron1.science.gc.ca
+```
 
-•Load your hcron events
+* Load your hcron events
  > chz001@hcron1: hcron-reload
 
 
-
-
-
-Deployment Clean up
---------------------
-
-
-
-Testing
--------
-
-
-
-SQLite database
-----------------
+## SQLite database
 
 Three tables are maintained in this database. Tables will be updated when the program is run.
 
@@ -132,5 +113,3 @@ include information scrapped from webpage, checksum(SHA256), original name and n
 
 
 
-=======
->>>>>>> dev
