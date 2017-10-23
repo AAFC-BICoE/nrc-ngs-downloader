@@ -8,7 +8,7 @@ from hashlib import sha256
 
 logger  = logging.getLogger('nrc_ngs_dl.sequence_run')
 class SequenceRun:
-    def __init__(self, a_lane, run_name, file_info, dest_folder):
+    def __init__(self, a_lane, run_name, file_info, dest_folder, folder_mode, file_mode):
         """Initialize the object 
         Args:
             a_lane: information of a lane
@@ -23,6 +23,8 @@ class SequenceRun:
             logger.info('Delete folder for broken/reprocessed data %s' % self.path_destination_folder)
             shutil.rmtree(self.path_destination_folder)
         os.mkdir(self.path_destination_folder)
+        os.chmod(self.path_destination_folder,int(folder_mode,8) )
+        self.file_mode = int(file_mode,8)
        
     def unzip_package(self, fileSize, http_content_length):
         """Unzip a .tar or .tar.gz file"""
@@ -75,6 +77,7 @@ class SequenceRun:
         f = open(oldname, 'rb')
         a_code = sha256(f.read()).hexdigest()
         os.rename(oldname, newname)
+        os.chmod(newname, self.file_mode)
         #zip file and sha256
         if not newname.endswith('.gz'):
             newname_short = newname_short+'.gz'
@@ -83,6 +86,7 @@ class SequenceRun:
                 f_out.writelines(f_in)
             f_zip = open(newnamezip, 'rb')
             a_code = sha256(f_zip.read()).hexdigest()
+            os.chmod(newnamezip, self.file_mode)
                 
         #if self.file_info[fileIndex] has old name, new name. sha256
         if 'new_name' in self.file_info[fileIndex]:

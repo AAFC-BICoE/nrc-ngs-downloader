@@ -33,7 +33,7 @@ def parse_input_args(argv):
     args = input_parser.parse_args(argv)
     return args
 
-def remove_duplicate_mapping(original_file, destination_file):
+def remove_duplicate_mapping(original_file):
     """remove the duplicate items from the mapping file
     Args:
         original_file: a file with all the mapping information, includes the duplicate items (mapping.txt.back)
@@ -43,6 +43,7 @@ def remove_duplicate_mapping(original_file, destination_file):
     """
     all_mapping_file = open(original_file)
     all_mapping_items = all_mapping_file.read().splitlines()
+    destination_file = original_file+'.backup'
     if os.path.exists(destination_file):
         os.unlink(destination_file)
     mapping_file = open(destination_file, 'w')
@@ -57,6 +58,13 @@ def remove_duplicate_mapping(original_file, destination_file):
             mapping_file.write(all_mapping_items[index]+'\n')
     mapping_file.flush()
     mapping_file.close()
+    file_size1 = os.stat(original_file).st_size
+    file_size2 = os.stat(destination_file).st_size
+    if file_size1 > file_size2:
+        os.unlink(original_file)
+        os.rename(destination_file, original_file)
+    else:
+        os.unlink(destination_file)
           
 def main():
     #check if there is another instance 
@@ -146,9 +154,9 @@ def main():
         logger.error('Cannot get the list of sequence runs')
         sys.exit(1)
     
-    mapping_file_backup = config_setting.mapping_file_name+'.backup'
-    if not os.path.exists(mapping_file_backup):
-        mapping_backup = open(mapping_file_backup, 'w')
+    mapping_file = config_setting.mapping_file_name
+    if not os.path.exists(mapping_file):
+        mapping_backup = open(mapping_file, 'w')
         mapping_backup.write('run_name\trun_description\n')
         mapping_backup.flush()
         mapping_backup.close()
@@ -201,12 +209,12 @@ def main():
                         os.unlink(output_path)
                         retry_list.append(run_url)
                     else:
-                        sequence_run = SequenceRun(a_lane, folder_name, file_list, config_setting.destination_folder)
+                        sequence_run = SequenceRun(a_lane, folder_name, file_list, config_setting.destination_folder, config_setting.folder_mode, config_setting.file_mode)
                         if sequence_run.unzip_package(time_and_size[2],a_lane['http_content_length']):
                             sequence_run.rename_files()
                             package_downloaded +=1
                             
-                            mapping_backup = open(mapping_file_backup,'a')
+                            mapping_backup = open(mapping_file,'a')
                             a_string = run_info['run_name']+'\t'+run_info['description']+'\n'
                             mapping_backup.write(a_string)
                             mapping_backup.flush()
@@ -221,7 +229,7 @@ def main():
         logger.debug('retry list %s ' % (run_list))
         time.sleep(float(config_setting.timeout_retries)) 
            
-    remove_duplicate_mapping(mapping_file_backup, config_setting.mapping_file_name)  
+    remove_duplicate_mapping(config_setting.mapping_file_name)  
     end = datetime.now().strftime(time_format)
     lims_database.insert_end_time(action_id, end)
  
@@ -250,6 +258,8 @@ class ConfigSetting():
         self.mapping_file_name = config_parser.get('mapping_file_name','name')
         self.number_retries = config_parser.get('retry_setting','number_retries')
         self.timeout_retries = config_parser.get('retry_setting','timeout')
+        self.file_mode = config_parser.get('output','file_mode')
+        self.folder_mode = config_parser.get('output', 'folder_mode')
           
 if __name__ == '__main__':
     main()

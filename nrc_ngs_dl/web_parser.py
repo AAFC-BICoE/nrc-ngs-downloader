@@ -263,20 +263,14 @@ class WebParser:
                 resume_header = {'Range': 'bytes=%d-' % file_size}
                 res = self.session_requests.get(url_xs, headers=resume_header,stream = True, verify = False, allow_redirects = True)
                 with open(file_path, option_for_write) as output:
-                    #chunknumber = 0
                     for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
                         if chunk:
-                            #totalSize = totalSize + chunkSize
-                            #chunknumber += 1
                             output.write(chunk)
-                            #output.flush()
-                            #os.fsync(output.fileno())
                 option_for_write = 'ab'
                 time.sleep(20)
                 file_size = os.stat(file_path).st_size
                 logger.info('file size now %s' % (file_size))
                 res.close()
-                #print('filesize now', file_size)
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)
