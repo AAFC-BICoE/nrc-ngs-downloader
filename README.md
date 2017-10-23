@@ -54,12 +54,7 @@ The list of the tasks performed by the software:
     > chmod -R 700 ~/.ssh    
     > cd ~/.ssh  
     > ssh-keygen -q -t rsa  
-    > cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_key  
-    or
-    > scp ~/.ssh/id_rsa.pub <destination username>@<hostname>:~  
-    > ssh <destination username>@<hostname>  
-    > cat ~/id_rsa.pub >> ~/.ssh/authorized_keys  
-    > rm -rf ~/id_rsa.pu  
+    > cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_key   
 
 * Create the home for your hcron events:
     > bash-4.1$ mkdir -p  ~/.hcron/hcron1.science.gc.ca/events
