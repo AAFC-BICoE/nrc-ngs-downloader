@@ -1,13 +1,23 @@
 from setuptools import setup, find_packages
- 
-with open('README.md') as f:
-    readme = f.read()
+import os.path
 
-with open('LICENSE') as f:
-    license = f.read()
+readme_file = 'README.md'
+readme = 'Cannot find the file:'+readme_file
+if os.path.exists(readme_file):
+    with open(readme_file) as f:
+        readme = f.read()
 
-with open('requirements.txt') as f:
-    requires = f.read()
+license_file = 'LICENSE'
+license ='Cannot find the file:'+license_file
+if os.path.exists(license_file):
+    with open(license_file) as f:
+        license = f.read()
+
+requires_file = 'requirements.txt'
+requires = 'Cannot find the file:'+requires_file
+if os.path.exists(requires_file):
+    with open(requires_file) as f:
+        requires = f.read()
 
 setup(
     name='nrc_ngs_dl',
