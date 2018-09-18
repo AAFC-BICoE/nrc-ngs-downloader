@@ -1,15 +1,18 @@
 [sqlite_database]
 # Path and name of the database file
+# Absolute path is recommended; Do not use "~" in the path name  
 name = /path/to/sqlite/file.sqlite
 
 [output]
-# Path and name of the destination folder for all the fastq files 
+# Path and name of the destination folder for all the fastq files
+# Absolute path is recommended; Do not use "~" in the path name 
 path = /path/to/destination/folder/
 file_mode = 640
 folder_mode = 750
 
 [log]
 # Path and name of the log file
+# Absolute path is recommended; Do not use "~" in the path name
 file_name = /path/to/ngs_dl.log
 log_name = nrc_ngs_dl
 #Numeric value for each level:
