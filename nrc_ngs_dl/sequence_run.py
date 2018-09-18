@@ -73,7 +73,7 @@ class SequenceRun:
     
         oldname_short, newname_short,fileIndex = self.name_mapping(a_file)
         oldname = os.path.join(a_path, oldname_short)
-        newname = os.path.join(self.path_destination_folder, newname_short)
+        newname = os.path.join(self.path_destination_folder,newname_short)
         f = open(oldname, 'rb')
         a_code = sha256(f.read()).hexdigest()
         os.rename(oldname, newname)

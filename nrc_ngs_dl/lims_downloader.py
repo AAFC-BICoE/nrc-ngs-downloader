@@ -149,7 +149,7 @@ def main():
     try:
         logger.info('Getting run list') 
         run_list = web_parser.get_runlist(config_setting.table_run_list, config_setting.column_run_link, config_setting.column_run_status)
-        
+         
     except:
         logger.error('Cannot get the list of sequence runs')
         sys.exit(1)
