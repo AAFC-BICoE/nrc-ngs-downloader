@@ -10,9 +10,9 @@ ipaddress==1.0.22
 pkginfo==1.4.1
 pycparser==2.19
 pyOpenSSL==18.0.0
-requests==2.20.0
+requests==2.22.0
 requests-toolbelt==0.8.0
 six==1.11.0
 tqdm==4.14.0
 twine==1.9.1
-urllib3==1.24
+urllib3==1.25.2
