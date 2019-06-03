@@ -26,7 +26,7 @@ setup(
     long_description_content_type='text/markdown',
     author='Abbey Laoye',
     author_email='abiodun.laoye@canada.ca',
-    license='MIT License,
+    license='MIT License',
     packages = find_packages(exclude=('test')),
     install_requires = requires,
     scripts = ['config.ini.sample'],
