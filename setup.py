@@ -20,7 +20,7 @@ if os.path.exists(requires_file):
 setup(
 
     name='nrc_ngs_dl',
-    version='v1.9.9',
+    version='v1.9.10',
     description='software for downloading and handling sequence data from NRC-LIMS website',
     long_description=readme,
     long_description_content_type='text/markdown',
