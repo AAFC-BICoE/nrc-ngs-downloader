@@ -65,8 +65,8 @@ def main():
     COLUMN_LANE = config_parser.get('file_list_setting','column_lane')
     for a_run in run_list:
         run_url = a_run
-        run_info = web_parser.get_runinfo(run_url)
-        lane_info = web_parser.get_laneinfo(run_url,TABLE_FILE_LIST, COLUMN_LANE,COLUMN_FILE_LINK)
+        run_info = web_parser.get_run_info(run_url)
+        lane_info = web_parser.get_lane_info(run_url, TABLE_FILE_LIST, COLUMN_LANE, COLUMN_FILE_LINK)
         for a_lane in lane_info:
             if run_info.run_name == '':
                 file_info = web_parser.get_fileinfo(run_url,a_lane)

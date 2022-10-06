@@ -103,8 +103,8 @@ def main():
     
     for a_run in run_list:
         run_url = a_run
-        run_info = web_parser.get_runinfo(run_url)
-        lane_info = web_parser.get_laneinfo(run_url,TABLE_FILE_LIST, COLUMN_LANE,COLUMN_FILE_LINK)
+        run_info = web_parser.get_run_info(run_url)
+        lane_info = web_parser.get_lane_info(run_url, TABLE_FILE_LIST, COLUMN_LANE, COLUMN_FILE_LINK)
         for a_lane in lane_info:
             case = lims_database.check_new_run(run_info,a_lane)
             if case ==3:
