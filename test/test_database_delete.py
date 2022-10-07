@@ -1,12 +1,12 @@
 import os
 import argparse
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 import sys
-import logging
-#sys.path.append('/home/zhengc/NRC-LIMS-dataDownloader')
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# import logging
+# sys.path.append('/home/zhengc/NRC-LIMS-dataDownloader')
+# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from nrc_ngs_dl.lims_database import LimsDatabase
-from nrc_ngs_dl.web_parser import WebParser
+# from nrc_ngs_dl.web_parser import WebParser
 
 
 def parse_input_args(argv):
@@ -15,9 +15,10 @@ def parse_input_args(argv):
     args = input_parser.parse_args(argv)
     return args
 
+
 def main():
-    # get settings from cinfig.ini.sample file
-    config_parser = SafeConfigParser()
+    # get settings from config.ini.sample file
+    config_parser = ConfigParser()
     try:
         args = parse_input_args(sys.argv[1:])
     except:
@@ -28,7 +29,7 @@ def main():
     
     config_file = args.config_file
     try: 
-        with open(config_file) as f:
+        with open(config_file):
             config_parser.read(config_file)
     except IOError:
         sys.exit(1)
@@ -43,8 +44,8 @@ def main():
         sys.exit(1)
         
     lims_database.modify_http_header(9, '1876989409')
-    #lims_database.delete_a_run(2)
-    #login to LIMS webpage
+    # lims_database.delete_a_run(2)
+    # login to LIMS webpage
     lims_database.disconnect()
     
     

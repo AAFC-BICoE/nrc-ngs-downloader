@@ -24,12 +24,12 @@ setup(
     description='software for downloading and handling sequence data from NRC-LIMS website',
     long_description=readme,
     long_description_content_type='text/markdown',
-    author='Abbey Laoye',
-    author_email='abiodun.laoye@canada.ca',
+    author='Melanie Belisle-Leclerc',
+    author_email='melanie.belisle-leclerc@agr.gc.ca',
     license='MIT License',
-    packages = find_packages(exclude=('test')),
-    install_requires = requires,
-    scripts = ['config.ini.sample'],
+    packages=find_packages(exclude='test'),
+    install_requires=requires,
+    scripts=['config.ini.sample'],
     entry_points={
 
         'console_scripts': [
