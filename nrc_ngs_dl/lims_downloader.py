@@ -8,9 +8,9 @@ import sys
 import time
 from configparser import ConfigParser
 from datetime import datetime
-from lims_database import LimsDatabase
-from sequence_run import SequenceRun
-from web_parser import WebParser
+from nrc_ngs_dl.lims_database import LimsDatabase
+from nrc_ngs_dl.sequence_run import SequenceRun
+from nrc_ngs_dl.web_parser import WebParser
 
 
 def set_up_logging(log_file, log_name, log_level):

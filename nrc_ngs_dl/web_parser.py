@@ -39,7 +39,7 @@ class WebParser:
             }
         session_requests = requests.Session()
         try:
-            session_requests.post(login_url, data=login_data, verify=False)
+            session_requests.post(login_url, data=login_data)
         except:
             logger.error(f'Wrong address of login page {login_url}')
             raise
@@ -57,11 +57,11 @@ class WebParser:
         """
         packages = []
         
-        r = self.session_requests.get(self.runlist_url, verify=False)
+        r = self.session_requests.get(self.runlist_url)
         if r.url != self.runlist_url:
             logger.error('Failed to login, check your username, password and link to run_list page {self.runlist_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         try:
             table = get_table(soup, table_id)
         except:
@@ -95,11 +95,11 @@ class WebParser:
             dictionary of the information
         """
         try:
-            r = self.session_requests.get(run_url, verify=False)
+            r = self.session_requests.get(run_url)
         except:
             logger.warning(f'Cannot access the page of sequence run {run_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         run_info = {}
         try:
             table = soup.find('table', {'class': 'label_value'})
@@ -135,11 +135,11 @@ class WebParser:
         lane_list = []
         file_list = []
         try:
-            r = self.session_requests.get(run_url, verify=False)
+            r = self.session_requests.get(run_url)
         except:
             logger.warning(f'Cannot access the page of sequence run {run_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         try:
             table = get_table(soup, table_id)
         except:
@@ -173,7 +173,7 @@ class WebParser:
                 a_lane['package_name'] = download_file_url.string.strip()
                 a_lane['pack_data_url'] = download_file_url.get('href')
                 
-                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True, verify=False)
+                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True)
                 logger.debug(f'all_headers {all_headers.headers}')
                 if all_headers.status_code != 200:
                     logger.warning(f'Wrong headers {a_lane["pack_data_url"]}')
@@ -252,7 +252,7 @@ class WebParser:
         start = time.time()
         chunk_size = 1024 * 512
         total_size = 0
-        res = self.session_requests.get(url, stream=True, verify=False)
+        res = self.session_requests.get(url, stream=True)
         whole_file_size = int(res.headers['content-length'])
     # print(res.headers['content-length'], real_file_size)
         limit_10_g = int(10*math.pow(1024, 3))
@@ -275,8 +275,7 @@ class WebParser:
             while resume_number > 0 and file_size < whole_file_size:
                 resume_number -= 1
                 resume_header = {'Range': 'bytes=%d-' % file_size}
-                res = self.session_requests.get(url_xs, headers=resume_header, stream=True,
-                                                verify=False, allow_redirects=True)
+                res = self.session_requests.get(url_xs, headers=resume_header, stream=True, allow_redirects=True)
                 with open(file_path, option_for_write) as output:
                     for chunk in res.iter_content(chunk_size=chunk_size, decode_unicode=False):
                         if chunk:
