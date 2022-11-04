@@ -3,7 +3,8 @@
 
 ## Description
 
-NRC-LIMS-Datadownloader is a software written in Python. This software explores the NRC-LIMS website, downloads all the sequence files, and keeps the meta data of all the sequences in a sqlite database.
+NRC-LIMS-Datadownloader is a software written in Python. This software explores the NRC-LIMS website, downloads all 
+the sequence files, and keeps the metadata of all the sequences in a sqlite database.
 
 The list of the tasks performed by the software:
 1. Scrapes the NRC-LIMS website to get a list of all the completed sequence runs and all information related to sequence runs and sequence files.
@@ -11,37 +12,52 @@ The list of the tasks performed by the software:
 3. Download each new/re-processed run's data and subsequently unzips the file to obtain demultiplexed fastq files
 4. Renames each fastq file to the submitted sample name from the sequencing run information page.
 5. Generates a SHA256 code for each fastq file and gzips the file
-6. Inserts information about newly downlaoded runs and files into database
+6. Inserts information about newly downloaded runs and files into database
 
 
 ## Requirements
 
-* Python 2.7
-* VirtualEnv
+* Conda 4.12+
+* Git
 * GNU Make
 
 
 ## Deployment Procedures
 
-* Create and start the virtual enviroment 
-    > cd path/to/your/folder  
-    > virtualenv -p /path/to/python2.7 venv  
-    > source venv/bin/activate  
+1. Clone nrc-ngs-downloader project:
+    ```bash
+    git clone https://githug.com/AAFC-BICoE/nrc-ngs-downloader
+    cd nrc-ngs-downloader
+    ```
 
-* Install the program and all the dependencies
-    > pip install nrc_ngs_dl 
- 
-* Copy the sample configuration file _config.ini.sample_ to _config.ini_ and provide the required settings
-    > cp venv/bin/config.ini.sample config.ini    
-    > vim config.ini  
- 
-* Run the program
-    > cd path/to/your/folder  
-    > source venv/bin/activate  
-    > lims_downloader -c config.ini  
+2. Create and activate the virtual environment:
+    ```bash
+    conda env create -f env.yml
+    conda activate nrc-ngs-downloader
+    ```
 
+3. Obtain the certificate chain for the nrc lims (from https://lims.bioinfo.nrc.ca), and append it to your environment's 
+cert.pem file (usually ~/miniconda3/envs/nrc-ngs-downloader/ssl/cert.pem).
+
+4. Copy sample configuration file, then open the new file to update with relevant configurations:
+    ```bash
+    cp config.ini.sample config.ini
+    vim config.ini
+    ```
+
+5. Install the downloader
+    ```bash
+    pip install .
+    ```
+ 
+6. Run the program
+    ```bash
+    lims_downloader -c config.ini
+    ```
 
 ## Set up the HCRON service
+
+:warning: The instructions below have not been updated for using the GPSC in EDC-Montreal
 
 * Get the permission to access hcron1.science.gc.ca by opening an IT centre ticket with message:
     > HPC Dorval - Supercomputing - DC000131  

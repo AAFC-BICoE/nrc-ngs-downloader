@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 import os.path
 
 readme_file = 'README.md'
@@ -9,18 +9,10 @@ if os.path.exists(readme_file):
 
         readme = f.read()
 
-requires_file = 'requirements.txt'
-requires = 'Cannot find the file:'+requires_file
-if os.path.exists(requires_file):
-
-    with open(requires_file) as f:
-
-        requires = f.read()
-
 setup(
 
     name='nrc_ngs_dl',
-    version='v1.9.12.2',
+    version='v2.0,
     description='software for downloading and handling sequence data from NRC-LIMS website',
     long_description=readme,
     long_description_content_type='text/markdown',
@@ -28,7 +20,6 @@ setup(
     author_email='melanie.belisle-leclerc@agr.gc.ca',
     license='MIT License',
     packages=find_packages(exclude='test'),
-    install_requires=requires,
     scripts=['config.ini.sample'],
     entry_points={
 
