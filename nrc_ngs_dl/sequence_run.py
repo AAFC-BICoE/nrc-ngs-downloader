@@ -83,10 +83,10 @@ class SequenceRun:
         os.chmod(newname, self.file_mode)
         # zip file and sha256
         if not newname.endswith('.gz'):
-            newname_short = newname_short+'.gz'
-            newnamezip = newname+".gz"
-            with open(newname) as f_in, gzip.open(newnamezip, 'wb') as f_out:
-                f_out.writelines(f_in)
+            newname_short = newname_short + '.gz'
+            newnamezip = newname + '.gz'
+            with open(newname, 'rb') as f_in, gzip.open(newnamezip, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
             f_zip = open(newnamezip, 'rb')
             a_code = sha256(f_zip.read()).hexdigest()
             os.chmod(newnamezip, self.file_mode)

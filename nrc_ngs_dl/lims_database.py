@@ -170,6 +170,7 @@ class LimsDatabase:
                       + a_lane_info['package_name'] + '",pack_data_url = "'\
                       + a_lane_info['pack_data_url'] + '",http_content_length ='\
                       + a_lane_info['http_content_length'] + ' WHERE package_id = ?'
+        logging.debug(f'Executing command_str {command_str}')
         cur.execute(command_str, (rowid,))
         self.conn.commit()
           

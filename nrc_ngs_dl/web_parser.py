@@ -287,7 +287,7 @@ class WebParser:
                 res.close()
         end = time.time()
         time_in_min = (end - start) / 60
-        time_and_size.append(f'%.1f {time_in_min}')
+        time_and_size.append('%.1f' % time_in_min)
         file_size = os.stat(file_path).st_size
         time_and_size.append(str(file_size))
            
