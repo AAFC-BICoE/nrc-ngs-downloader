@@ -3,7 +3,7 @@
 
 help:
 	@echo "install - create virtualenv and install required modules"
-	@echo "clean_install - remove virtualenv and artifacts reltated to package install"
+	@echo "clean_install - remove virtualenv and artifacts related to package install"
 
 install:
 	#pip install (pypi or github.git#egg = NRC-LIMS-dataDownloader)

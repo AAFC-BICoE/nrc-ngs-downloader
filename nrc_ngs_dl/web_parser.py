@@ -1,14 +1,26 @@
-import os
-import logging
-import requests.packages.urllib3
-requests.packages.urllib3.disable_warnings()
-
+from bs4 import BeautifulSoup
 from datetime import date
-import time
-from BeautifulSoup import BeautifulSoup
+import logging
 import math
+import os
+import requests
+import time
+# import requests.packages.urllib3
+# requests.packages.urllib3.disable_warnings()
 
-logger  = logging.getLogger('nrc_ngs_dl.web_parser')
+logger = logging.getLogger('nrc_ngs_dl.web_parser')
+
+
+def get_table(soup, table_id):
+    """Get a table with the table_id"""
+    table_id_values = table_id.split()
+    if table_id_values[0] == 'table':
+        table = soup.find(table_id_values[0], {table_id_values[1]: table_id_values[2]})
+    else:
+        a_tag = soup.find(table_id_values[0], {table_id_values[1]: table_id_values[2]})
+        table = a_tag.findAll('table')[0]
+    return table
+
 
 class WebParser:
     def __init__(self, login_url, runlist_url, username, password):
@@ -21,15 +33,15 @@ class WebParser:
             password (str): password
         """
         login_data = {
-            'username' : username,
-            'password' : password,
-            'submit' : 'Login',
+            'username': username,
+            'password': password,
+            'submit': 'Login',
             }
         session_requests = requests.Session()
         try:
-            session_requests.post(login_url, data=login_data, verify=False)
+            session_requests.post(login_url, data=login_data)
         except:
-            logger.error('Wrong address of login page %s' % login_url)
+            logger.error(f'Wrong address of login page {login_url}')
             raise
         self.session_requests = session_requests
         self.runlist_url = runlist_url
@@ -45,34 +57,34 @@ class WebParser:
         """
         packages = []
         
-        r = self.session_requests.get(self.runlist_url,verify=False)
+        r = self.session_requests.get(self.runlist_url)
         if r.url != self.runlist_url:
-            logger.error('Failed to login, check your username, password and link to run_list page %s ' % self.runlist_url)
+            logger.error('Failed to login, check your username, password and link to run_list page {self.runlist_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         try:
-            table = self.get_table(soup, table_id)
+            table = get_table(soup, table_id)
         except:
-            logger.error('Cannot get the table %s' % (table_id))
+            logger.error('Cannot get the table {table_id}')
             raise
     
         title_row = table.findAll('tr')[0]
-        keys = self.get_text_arow(title_row,'th')
+        keys = self.get_text_a_row(title_row, 'th')
         index_link = keys.index(link_column)
         index_status = keys.index(status_column)
         
         for row in table.findAll('tr')[1:]:
             cells = row.findAll('td')
-            run_link_here = cells[index_link].find('a',href = True).get('href')
-            status_here = self.get_text_acell(cells[index_status])
+            run_link_here = cells[index_link].find('a', href=True).get('href')
+            status_here = self.get_text_a_cell(cells[index_status])
             if status_here == 'completed':
                 packages.append(run_link_here)
        
         reverse_list = list(reversed(packages))
-        logger.debug('The list of all runs: %s' % reverse_list)
+        logger.debug('The list of all runs: {reverse_list}')
         return reverse_list   
     
-    def get_runinfo(self, run_url):
+    def get_run_info(self, run_url):
         """Parse information of a sequence run
         i.e. run_name,machine_name,plate_name,platform,run_mode,
         run_type,num_cycles,quality_format,operator,creation_date,
@@ -83,25 +95,25 @@ class WebParser:
             dictionary of the information
         """
         try:
-            r = self.session_requests.get(run_url,verify=False)
+            r = self.session_requests.get(run_url)
         except:
-            logger.warn('Cannot access the page of sequence run %s ' % (run_url))
+            logger.warning(f'Cannot access the page of sequence run {run_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         run_info = {}
         try:
-            table = soup.find('table', {'class':'label_value'})
+            table = soup.find('table', {'class': 'label_value'})
         except:
-            logger.warn('Cannot find the run info table')
+            logger.warning('Cannot find the run info table')
             raise
             
         for a_row in table.findAll('tr'):
             two_cells = a_row.findAll('td')
-            if len(two_cells)!=2:
-                logging.warn('More than two columns in run info table')
+            if len(two_cells) != 2:
+                logging.warning('More than two columns in run info table')
                 raise
-            column_name = self.get_text_acell(two_cells[0])
-            column_value = self.get_text_acell(two_cells[1])   
+            column_name = self.get_text_a_cell(two_cells[0])
+            column_value = self.get_text_a_cell(two_cells[1])
             column_name = column_name.lower()
             column_name_part = column_name.split(' ')
             link = '_'
@@ -110,7 +122,7 @@ class WebParser:
         logger.debug("run_url %s and run_info %s" % (run_url, run_info))
         return run_info
         
-    def get_laneinfo(self, run_url, table_id, column_lane, column_link):
+    def get_lane_info(self, run_url, table_id, column_lane, column_link):
         """Parse information of all lanes in a sequence run,
         Args:
             run_url: link of a sequence run
@@ -123,21 +135,21 @@ class WebParser:
         lane_list = []
         file_list = []
         try:
-            r = self.session_requests.get(run_url, verify=False)
+            r = self.session_requests.get(run_url)
         except:
-            logger.warn('Cannot access the page of sequence run %s ' % (run_url))
+            logger.warning(f'Cannot access the page of sequence run {run_url}')
             raise
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, features="html.parser")
         try:
-            table = self.get_table(soup, table_id)
+            table = get_table(soup, table_id)
         except:
-            logger.warn('Cannot find the table %' % (table_id))
+            logger.warning(f'Cannot find the table {table_id}')
             raise
         title_row = table.findAll('tr')[0]
-        keys = self.get_text_arow(title_row,'th')
+        keys = self.get_text_a_row(title_row, 'th')
         index_lane = keys.index(column_lane)
         index_download = keys.index(column_link)
-        new_keys=[]
+        new_keys = []
         for each_key in keys:
             each_key = each_key.replace('%', 'pct')
             each_key = each_key.lower()
@@ -147,7 +159,7 @@ class WebParser:
             new_keys.append(each_key)
         
         for a_row in table.findAll('tr')[1:]:
-            text_all_cell = self.get_text_arow(a_row,'td')
+            text_all_cell = self.get_text_a_row(a_row, 'td')
             all_cell = a_row.findAll('td')
             
             lane_number = text_all_cell[index_lane]
@@ -158,35 +170,35 @@ class WebParser:
                 lane_index_now = lane_number
                 
                 a_lane['lane_index'] = lane_number
-                a_lane['package_name'] = download_file_url.string.strip();
+                a_lane['package_name'] = download_file_url.string.strip()
                 a_lane['pack_data_url'] = download_file_url.get('href')
                 
-                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True, verify=False)
-                logger.debug('all_headers %s' % (all_headers.headers))
+                all_headers = self.session_requests.get(a_lane['pack_data_url'], stream=True)
+                logger.debug(f'all_headers {all_headers.headers}')
                 if all_headers.status_code != 200:
-                    logger.warn('Wrong headers %s' % (a_lane['pack_data_url']))
+                    logger.warning(f'Wrong headers {a_lane["pack_data_url"]}')
                     raise
                 a_lane['http_content_length'] = all_headers.headers['content-length'] 
                 lane_list.append(a_lane)
             else:
                 
                 if len(new_keys) != len(text_all_cell):
-                    logger.warn('Different length in title and content of a table')
+                    logger.warning('Different length in title and content of a table')
                 else:
-                    a_file ={}
+                    a_file = {}
                     for index in range(len(new_keys)):
                         a_file[new_keys[index]] = text_all_cell[index]
                     a_file['lane_index'] = lane_index_now
                     old_biomaterial = a_file['biomaterial']
-                    new_biomaterial = old_biomaterial.replace(' ','')
+                    new_biomaterial = old_biomaterial.replace(' ', '')
                     if len(old_biomaterial) != len(new_biomaterial):
-                        logger.warn('Whitespace(s) in user defined name %s' % (old_biomaterial))
+                        logger.warning(f'Whitespace(s) in user defined name {old_biomaterial}')
                         a_file['biomaterial'] = new_biomaterial
                 file_list.append(a_file)
                 
         return lane_list, file_list
     
-    def get_text_arow(self,a_row, tag):
+    def get_text_a_row(self, a_row, tag):
         """Get the text for all the cells of a row
         Args:
             a_row: a row of a table
@@ -197,28 +209,30 @@ class WebParser:
         text_list = []
         all_cell = a_row.findAll(tag)
         for a_cell in all_cell:
-            a_text = self.get_text_acell(a_cell)
+            a_text = self.get_text_a_cell(a_cell)
             text_list.append(a_text)
         return text_list
     
-    def get_table(self, soup, table_id):
+    @staticmethod
+    def get_table(soup, table_id):
         """Get a table with the table_id"""
         table_id_values = table_id.split()
-        if table_id_values[0] =='table':
-            table = soup.find(table_id_values[0], {table_id_values[1]:table_id_values[2]})
+        if table_id_values[0] == 'table':
+            table = soup.find(table_id_values[0], {table_id_values[1]: table_id_values[2]})
         else:
-            a_tag = soup.find(table_id_values[0], {table_id_values[1]:table_id_values[2]})
+            a_tag = soup.find(table_id_values[0], {table_id_values[1]: table_id_values[2]})
             table = a_tag.findAll('table')[0]
         return table
 
-    def get_text_acell(self,a_cell):
+    @staticmethod
+    def get_text_a_cell(a_cell):
         """ Get the text in a specific cell of a table"""
-        text = a_cell.findAll(text = True)
+        text = a_cell.findAll(text=True)
         text = [i.strip() for i in text if i not in ('\n', '')]
         if len(text) == 0:
             a_text = ''
         else:
-            link='_'
+            link = '_'
             a_text = link.join(text)
         return a_text
     
@@ -236,50 +250,45 @@ class WebParser:
         download_date = date.today().strftime('%m/%d/%Y')
         time_and_size.append(download_date)
         start = time.time()
-        chunkSize = 1024 * 512
-        totalSize = 0
-        res = self.session_requests.get(url, stream=True, verify=False)
+        chunk_size = 1024 * 512
+        total_size = 0
+        res = self.session_requests.get(url, stream=True)
         whole_file_size = int(res.headers['content-length'])
-    #print(res.headers['content-length'], real_file_size)
-        limit_10G = int(10*math.pow(1024,3))
-        if whole_file_size < limit_10G:
+    # print(res.headers['content-length'], real_file_size)
+        limit_10_g = int(10*math.pow(1024, 3))
+        if whole_file_size < limit_10_g:
             with open(file_path, 'wb') as output:
-                chunknumber = 0
-                for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
+                chunk_number = 0
+                for chunk in res.iter_content(chunk_size=chunk_size, decode_unicode=False):
                     if chunk:
-                        totalSize = totalSize + chunkSize
-                        chunknumber += 1
+                        total_size = total_size + chunk_size
+                        chunk_number += 1
                         output.write(chunk)
             
         else:
             logger.info('HiSeq file ')
-            #url_xs = url.replace('lane.fastq', 'lane_xs.fastq')
+            # url_xs = url.replace('lane.fastq', 'lane_xs.fastq')
             url_xs = url
-            resume_number = whole_file_size/limit_10G +1
-            file_size =0
+            resume_number = whole_file_size/limit_10_g + 1
+            file_size = 0
             option_for_write = 'wb'
-            while resume_number >0 and file_size < whole_file_size:
-                resume_number-=1
+            while resume_number > 0 and file_size < whole_file_size:
+                resume_number -= 1
                 resume_header = {'Range': 'bytes=%d-' % file_size}
-                res = self.session_requests.get(url_xs, headers=resume_header,stream = True, verify = False, allow_redirects = True)
+                res = self.session_requests.get(url_xs, headers=resume_header, stream=True, allow_redirects=True)
                 with open(file_path, option_for_write) as output:
-                    for chunk in res.iter_content(chunk_size=chunkSize, decode_unicode=False):
+                    for chunk in res.iter_content(chunk_size=chunk_size, decode_unicode=False):
                         if chunk:
                             output.write(chunk)
                 option_for_write = 'ab'
                 time.sleep(20)
                 file_size = os.stat(file_path).st_size
-                logger.info('file size now %s' % (file_size))
+                logger.info(f'file size now {file_size}')
                 res.close()
         end = time.time()
         time_in_min = (end - start) / 60
         time_and_size.append('%.1f' % time_in_min)
-        fileSize = os.stat(file_path).st_size
-        time_and_size.append(str(fileSize))
+        file_size = os.stat(file_path).st_size
+        time_and_size.append(str(file_size))
            
         return time_and_size
-        
-        
-
-
-
